@@ -4,7 +4,7 @@
 # that the live spec is stored in DigitalOcean: to apply changes, paste this into
 # Apps → <app> → Settings → App Spec → Edit (or `doctl apps update <id> --spec .do/app.yaml`).
 #
-#   listgate.com.au, www., app.  → web   (homepage, agency app, REAXML feed endpoint, partner API v1)
+#   app.listgate.com.au (later listgate.com.au, www.) → web   (homepage, agency app, REAXML feed endpoint, partner API v1)
 #   admin.listgate.com.au        → admin (Listgate staff, ADMIN_EMAILS sign-in)
 #   migrate (pre-deploy job) applies DB migrations, creates the ADMIN_EMAILS users and the starter partners.
 #   ftp.listgate.com.au          → NOT here: App Platform can't take FTP. apps/ftp runs on a small droplet.
@@ -25,19 +25,16 @@ alerts:
 features:
   - buildpack-stack=ubuntu-22
 
+# Phase 1 (now): app. and admin. only, as CNAMEs at Netregistry. listgate.com.au stays on the old
+# WordPress droplet until launch day. Launch day: move listgate.com.au DNS to DigitalOcean, add
+#   - domain: listgate.com.au      (type: PRIMARY, zone: listgate.com.au)
+#   - domain: www.listgate.com.au  (type: ALIAS,   zone: listgate.com.au)
+# and change APP_URL to https://listgate.com.au.
 domains:
-  - domain: listgate.com.au
-    type: PRIMARY
-    zone: listgate.com.au
-  - domain: www.listgate.com.au
-    type: ALIAS
-    zone: listgate.com.au
   - domain: app.listgate.com.au
-    type: ALIAS
-    zone: listgate.com.au
+    type: PRIMARY
   - domain: admin.listgate.com.au
     type: ALIAS
-    zone: listgate.com.au
 
 databases:
   - name: listgatedb
@@ -99,7 +96,7 @@ services:
     envs:
       - key: APP_URL
         scope: RUN_TIME
-        value: https://listgate.com.au
+        value: https://app.listgate.com.au
       - key: ADMIN_URL
         scope: RUN_TIME
         value: https://admin.listgate.com.au
@@ -148,7 +145,7 @@ services:
         value: colin@alfalfa.com.au
       - key: APP_URL
         scope: RUN_TIME
-        value: https://listgate.com.au
+        value: https://app.listgate.com.au
       - key: ADMIN_URL
         scope: RUN_TIME
         value: https://admin.listgate.com.au

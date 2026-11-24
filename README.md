@@ -85,7 +85,7 @@ DigitalOcean App Platform (Sydney), spec in `.do/app.yaml`, same as Propchat and
 `listgate-db`.
 
 One-time setup:
-1. Create the app from `.do/app.yaml`, then set `SMTP_URL` and `FTP_RELAY_KEY` as encrypted env vars.
+1. Create the app from `.do/app.yaml` (phase 1: app. and admin. subdomains), then set `SMTP_URL` and `FTP_RELAY_KEY` as encrypted env vars.
 2. DNS for listgate.com.au (Netregistry, or move it to DigitalOcean): point `@`, `www`, `app` and `admin`
    at the app as App Platform shows. Re-create any email (MX) records first.
 3. Resend: add `listgate.com.au`, add its DNS records, create a sending key for `SMTP_URL`.
