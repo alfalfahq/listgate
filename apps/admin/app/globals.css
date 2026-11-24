@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  @apply bg-[#f5f7fa] text-ink antialiased;
+}
+
+@layer components {
+  .input {
+    @apply rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-teal focus:outline-none focus:ring-2 focus:ring-cyan/25;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium text-zinc-600;
+  }
+  .btn-primary {
+    @apply inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-full bg-navy px-5 text-sm font-semibold text-white shadow-sm hover:bg-navy-2 disabled:opacity-60;
+  }
+  .btn-secondary {
+    @apply inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-full border border-zinc-300 bg-white px-4 text-sm font-semibold text-ink shadow-sm hover:border-teal hover:text-teal disabled:opacity-60;
+  }
+  .card {
+    @apply rounded-2xl border border-zinc-200/80 bg-white shadow-card;
+  }
+  .card-title {
+    @apply text-[11px] font-bold uppercase tracking-[0.08em] text-zinc-500;
+  }
+  .pill {
+    @apply inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+  /* Tables: card-wrapped, quiet header, roomy rows */
+  .tbl {
+    @apply w-full text-left text-sm;
+  }
+  .tbl th {
+    @apply whitespace-nowrap border-b border-zinc-200 bg-[#f8fafc] px-4 py-2.5 text-[11px] font-bold uppercase tracking-wide text-zinc-500;
+  }
+  .tbl td {
+    @apply border-b border-zinc-100 px-4 py-3 align-middle;
+  }
+  .tbl tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  .tbl tbody tr:hover td {
+    @apply bg-cyan/[0.04];
+  }
+  .card-hover {
+    @apply transition hover:-translate-y-px hover:border-teal/40 hover:shadow-md;
+  }
+  .num {
+    @apply text-right tabular-nums;
+  }
+}
+
+/* Dark sidebar, same as the app */
+.sidenav {
+  background: #0d2d4f;
+  color: #f4f4f5;
+}
+.sidenav .nav-muted {
+  color: rgb(244 244 245 / 0.55);
+}
+.sidenav .nav-item {
+  color: rgb(244 244 245 / 0.8);
+}
+.sidenav .nav-item:hover {
+  background: rgb(244 244 245 / 0.09);
+  color: #f4f4f5;
+}
+.sidenav .nav-item[aria-current="page"] {
+  background: rgb(42 196 234 / 0.14);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 #2ac4ea;
+}
+.sidenav .nav-item[aria-current="page"] svg {
+  color: #2ac4ea;
+}
+.sidenav .nav-group {
+  color: rgb(244 244 245 / 0.4);
+}
+.sidenav .nav-rule {
+  border-color: rgb(244 244 245 / 0.14);
+}
+
+/* No browser triangles on expandable sections. */
+summary { list-style: none; cursor: pointer; }
+summary::-webkit-details-marker { display: none; }
+summary::marker { content: ""; }
+
+/* Grid and flex children may shrink below their content, so wide tables scroll inside their card
+   instead of pushing the whole page sideways on phones. */
+main .grid > *,
+main .flex-1 {
+  min-width: 0;
+}
+@media (max-width: 767px) {
+  /* 16px inputs stop iOS zooming in when a field gets focus. */
+  .input {
+    font-size: 16px;
+  }
+}

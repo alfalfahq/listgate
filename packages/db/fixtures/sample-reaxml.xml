@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fictional sample feed for testing Listgate. Upload it on an agency in admin (Feed › Upload a file). -->
+<propertyList date="2026-11-25-10:00:00" username="demo" password="">
+  <residential modTime="2026-11-25-09:00:00" status="current">
+    <agentID>DEMO</agentID>
+    <uniqueID>DEMO-1001</uniqueID>
+    <listingAgent id="1">
+      <name>Alex Harper</name>
+      <telephone type="mobile">0400 000 001</telephone>
+      <email>alex@example.com</email>
+    </listingAgent>
+    <priceView>Offers over $1,450,000</priceView>
+    <price display="no">1450000</price>
+    <address display="yes">
+      <streetNumber>12</streetNumber>
+      <street>Example Street</street>
+      <suburb display="yes">New Farm</suburb>
+      <state>QLD</state>
+      <postcode>4005</postcode>
+    </address>
+    <category name="House"/>
+    <headline>Character home moments from the river</headline>
+    <description>Fictional sample listing used to test the Listgate feed.</description>
+    <features><bedrooms>4</bedrooms><bathrooms>2</bathrooms><garages>1</garages><carports>1</carports></features>
+    <landDetails><area unit="squareMeter">607</area></landDetails>
+    <inspectionTimes><inspection>29-Nov-2026 10:00am to 10:30am</inspection></inspectionTimes>
+    <objects>
+      <img id="m" url="https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200" />
+      <img id="a" url="https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=1200" />
+      <floorplan id="1" url="https://example.com/floorplan-1001.pdf" />
+    </objects>
+  </residential>
+  <residential modTime="2026-11-25-09:00:00" status="current">
+    <agentID>DEMO</agentID>
+    <uniqueID>DEMO-1002</uniqueID>
+    <underOffer value="yes"/>
+    <listingAgent id="1"><name>Sarah Lim</name><email>sarah@example.com</email></listingAgent>
+    <priceView>Contact agent</priceView>
+    <address display="no">
+      <subNumber>3</subNumber><streetNumber>40</streetNumber><street>Sample Road</street>
+      <suburb>Teneriffe</suburb><state>QLD</state><postcode>4005</postcode>
+    </address>
+    <category name="Unit"/>
+    <features><bedrooms>2</bedrooms><bathrooms>2</bathrooms><garages>1</garages></features>
+  </residential>
+  <rental modTime="2026-11-25-09:00:00" status="current">
+    <agentID>DEMO</agentID>
+    <uniqueID>DEMO-R201</uniqueID>
+    <listingAgent id="1"><name>Sarah Lim</name><email>sarah@example.com</email></listingAgent>
+    <rent period="week" display="yes">650</rent>
+    <address display="yes"><streetNumber>9</streetNumber><street>Test Terrace</street><suburb>Newstead</suburb><state>QLD</state><postcode>4006</postcode></address>
+    <category name="Townhouse"/>
+    <features><bedrooms>3</bedrooms><bathrooms>2</bathrooms><garages>2</garages></features>
+  </rental>
+  <residential modTime="2026-11-20-09:00:00" status="sold">
+    <agentID>DEMO</agentID>
+    <uniqueID>DEMO-0901</uniqueID>
+    <listingAgent id="1"><name>Alex Harper</name><email>alex@example.com</email></listingAgent>
+    <address display="yes"><streetNumber>7</streetNumber><street>Demo Lane</street><suburb>Newstead</suburb><state>QLD</state><postcode>4006</postcode></address>
+    <category name="House"/>
+    <soldDetails><soldPrice display="no">1210000</soldPrice><soldDate>2026-11-18</soldDate></soldDetails>
+    <features><bedrooms>3</bedrooms><bathrooms>2</bathrooms><garages>2</garages></features>
+  </residential>
+</propertyList>

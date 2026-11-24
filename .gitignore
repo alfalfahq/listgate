@@ -1,0 +1,40 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next.js
+.next/
+out/
+
+# production
+build/
+dist/
+
+# local database (PGlite) used when DATABASE_URL is not set
+.pglite/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+
+# env files
+.env
+.env*.local
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# local Claude settings
+.claude/
+
+# local helper
+push-listgate.bat
+push-log.txt
+
+# local data
+/data

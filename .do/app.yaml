@@ -1,0 +1,163 @@
+# DigitalOcean App Platform spec for Listgate (same setup as Propchat and Dwellicious).
+#
+# NOTE: App Platform only reads this file when an app is first created. After
+# that the live spec is stored in DigitalOcean: to apply changes, paste this into
+# Apps → <app> → Settings → App Spec → Edit (or `doctl apps update <id> --spec .do/app.yaml`).
+#
+#   listgate.com.au, www., app.  → web   (homepage, agency app, REAXML feed endpoint, partner API v1)
+#   admin.listgate.com.au        → admin (Listgate staff, ADMIN_EMAILS sign-in)
+#   migrate (pre-deploy job) applies DB migrations, creates the ADMIN_EMAILS users and the starter partners.
+#   ftp.listgate.com.au          → NOT here: App Platform can't take FTP. apps/ftp runs on a small droplet.
+#
+# The web service also runs the partner push worker in-process (lib/deliver.ts). Deliveries are claimed
+# with row locks, so scaling web to more than one instance is safe.
+#
+# Secrets are not stored here. Set them in the dashboard as encrypted RUN_TIME env vars:
+#   SMTP_URL        smtps://resend:<RESEND sending key>@smtp.resend.com:465   - web AND admin
+#   FTP_RELAY_KEY   long random string, same value on the FTP droplet         - web
+name: listgate
+region: syd
+
+alerts:
+  - rule: DEPLOYMENT_FAILED
+  - rule: DOMAIN_FAILED
+
+features:
+  - buildpack-stack=ubuntu-22
+
+domains:
+  - domain: listgate.com.au
+    type: PRIMARY
+    zone: listgate.com.au
+  - domain: www.listgate.com.au
+    type: ALIAS
+    zone: listgate.com.au
+  - domain: app.listgate.com.au
+    type: ALIAS
+    zone: listgate.com.au
+  - domain: admin.listgate.com.au
+    type: ALIAS
+    zone: listgate.com.au
+
+databases:
+  - name: listgatedb
+    engine: PG
+    production: true
+    cluster_name: listgate-db
+    db_name: listgate
+
+ingress:
+  rules:
+    - component:
+        name: admin
+      match:
+        authority:
+          exact: admin.listgate.com.au
+        path:
+          prefix: /
+    - component:
+        name: web
+      match:
+        path:
+          prefix: /
+
+jobs:
+  - name: migrate
+    kind: PRE_DEPLOY
+    environment_slug: node-js
+    github:
+      repo: alfalfahq/listgate
+      branch: main
+      deploy_on_push: true
+    build_command: echo "migrate job - no build needed"
+    run_command: npm run db:setup
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${listgatedb.DATABASE_URL}
+      - key: DATABASE_CA_CERT
+        scope: RUN_TIME
+        value: ${listgatedb.CA_CERT}
+      - key: ADMIN_EMAILS
+        scope: RUN_TIME
+        value: colin@alfalfa.com.au
+
+services:
+  - name: web
+    environment_slug: node-js
+    github:
+      repo: alfalfahq/listgate
+      branch: main
+      deploy_on_push: true
+    build_command: npm run build:web
+    run_command: npm run start:web
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-1gb
+    http_port: 8080
+    envs:
+      - key: APP_URL
+        scope: RUN_TIME
+        value: https://listgate.com.au
+      - key: ADMIN_URL
+        scope: RUN_TIME
+        value: https://admin.listgate.com.au
+      - key: ROOT_DOMAIN
+        scope: RUN_TIME
+        value: listgate.com.au
+      - key: APP_HOSTS
+        scope: RUN_TIME
+        value: listgate.com.au,www.listgate.com.au,app.listgate.com.au
+      - key: FTP_HOST
+        scope: RUN_TIME
+        value: ftp.listgate.com.au
+      - key: EMAIL_FROM
+        scope: RUN_TIME
+        value: Listgate <hello@listgate.com.au>
+      - key: ADMIN_EMAILS
+        scope: RUN_TIME
+        value: colin@alfalfa.com.au
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${listgatedb.DATABASE_URL}
+      - key: DATABASE_CA_CERT
+        scope: RUN_TIME
+        value: ${listgatedb.CA_CERT}
+
+  - name: admin
+    environment_slug: node-js
+    github:
+      repo: alfalfahq/listgate
+      branch: main
+      deploy_on_push: true
+    build_command: npm run build:admin
+    run_command: npm run start:admin
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    http_port: 8080
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${listgatedb.DATABASE_URL}
+      - key: DATABASE_CA_CERT
+        scope: RUN_TIME
+        value: ${listgatedb.CA_CERT}
+      - key: ADMIN_EMAILS
+        scope: RUN_TIME
+        value: colin@alfalfa.com.au
+      - key: APP_URL
+        scope: RUN_TIME
+        value: https://listgate.com.au
+      - key: ADMIN_URL
+        scope: RUN_TIME
+        value: https://admin.listgate.com.au
+      - key: ROOT_DOMAIN
+        scope: RUN_TIME
+        value: listgate.com.au
+      - key: FTP_HOST
+        scope: RUN_TIME
+        value: ftp.listgate.com.au
+      - key: EMAIL_FROM
+        scope: RUN_TIME
+        value: Listgate <hello@listgate.com.au>

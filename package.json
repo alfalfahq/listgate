@@ -1,0 +1,27 @@
+{
+  "name": "listgate",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "npm run dev -w @listgate/web",
+    "dev:admin": "npm run dev -w @listgate/admin",
+    "build": "npm run build -w @listgate/web && npm run build -w @listgate/admin",
+    "build:web": "npm run build -w @listgate/web",
+    "build:admin": "npm run build -w @listgate/admin",
+    "start:web": "npm run start -w @listgate/web",
+    "start:admin": "npm run start -w @listgate/admin",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:generate": "npm run generate -w @listgate/db",
+    "db:migrate": "npm run migrate -w @listgate/db",
+    "db:seed": "npm run seed -w @listgate/db",
+    "db:setup": "npm run migrate -w @listgate/db && npm run seed -w @listgate/db",
+    "test": "npm run selftest -w @listgate/db",
+    "dev:ftp": "npm run dev -w @listgate/ftp"
+  }
+}
