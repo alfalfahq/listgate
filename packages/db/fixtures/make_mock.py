@@ -3,7 +3,7 @@
 single-agent: every listing has the same agent (a solo agent / buyer's-agent style site)
 team:         three agents, each listing with its own agent (some with two)
 
-Agent headshots are free Unsplash photos hosted at app.listgate.com.au/mock/agents/ (square, face centred).
+Agent headshots are free Unsplash photos, cropped square around the face by Unsplash.
 """
 from xml.sax.saxutils import escape, quoteattr
 
@@ -26,11 +26,17 @@ P = {
 }
 
 
-PHOTO_BASE = "https://app.listgate.com.au/mock/agents/"
+# Unsplash headshots, cropped square around the face by Unsplash (fit=facearea), so circles centre on the face.
+FACE = "?w=600&h=600&fit=facearea&facepad=3&q=80"
+PHOTOS = {
+    "Olivia Marsh": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2" + FACE,
+    "Daniel Price": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7" + FACE,
+    "Marcus Hale": "https://images.unsplash.com/photo-1560250097-0b93528c311a" + FACE,
+}
 
 
 def avatar(name):
-    return PHOTO_BASE + name.lower().replace(" ", "-") + ".jpg"
+    return PHOTOS[name]
 
 
 AGENTS = {
@@ -399,7 +405,7 @@ def build(single):
   Mock REAXML feed for testing Dwellicious and Listgate: {who}.
   Everything is fictional: agency (Harper &amp; Vale), agents, phone numbers, emails and street names.
   Suburbs are real Brisbane suburbs. Listing photos and agent headshots are free Unsplash images
-  (agent headshots hosted on app.listgate.com.au/mock/agents/, cropped square with the face centred).
+  (agent headshots cropped square around the face).
   28 listings: 14 for sale, 7 sold, 6 rentals, 1 withdrawn.
   Covers auction, offers over, price shown, price hidden, address hidden, under offer, EOI, land,
   sold with price shown and undisclosed, rentals current and leased, and a withdrawal.

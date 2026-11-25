@@ -3,7 +3,7 @@
   Mock REAXML feed for testing Dwellicious and Listgate: a team of three agents (Olivia Marsh, Daniel Price, Marcus Hale), each listing with its own agent or pair.
   Everything is fictional: agency (Harper &amp; Vale), agents, phone numbers, emails and street names.
   Suburbs are real Brisbane suburbs. Listing photos and agent headshots are free Unsplash images
-  (agent headshots hosted on app.listgate.com.au/mock/agents/, cropped square with the face centred).
+  (agent headshots cropped square around the face).
   28 listings: 14 for sale, 7 sold, 6 rentals, 1 withdrawn.
   Covers auction, offers over, price shown, price hidden, address hidden, under offer, EOI, land,
   sold with price shown and undisclosed, rentals current and leased, and a withdrawal.
@@ -16,13 +16,13 @@
       <name>Olivia Marsh</name>
       <telephone type="mobile">0400 111 201</telephone>
       <email>olivia@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/olivia-marsh.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <listingAgent id="2">
       <name>Daniel Price</name>
       <telephone type="mobile">0400 111 202</telephone>
       <email>daniel@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/daniel-price.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <priceView>Auction Saturday 13 December, 10am on site</priceView>
     <price display="no">1650000</price>
@@ -72,7 +72,7 @@ Fictional listing for testing.</description>
       <name>Marcus Hale</name>
       <telephone type="mobile">0400 111 204</telephone>
       <email>marcus@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/marcus-hale.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <priceView>Offers over $1,295,000</priceView>
     <price display="no">1295000</price>
@@ -113,7 +113,7 @@ Fictional listing for testing.</description>
       <name>Daniel Price</name>
       <telephone type="mobile">0400 111 202</telephone>
       <email>daniel@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/daniel-price.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <priceView>$895,000</priceView>
     <price display="yes">895000</price>
@@ -154,7 +154,7 @@ Fictional listing for testing.</description>
       <name>Olivia Marsh</name>
       <telephone type="mobile">0400 111 201</telephone>
       <email>olivia@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/olivia-marsh.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <priceView>Contact agent</priceView>
     <price display="no">2400000</price>
@@ -198,7 +198,7 @@ Fictional listing for testing.</description>
       <name>Olivia Marsh</name>
       <telephone type="mobile">0400 111 201</telephone>
       <email>olivia@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/olivia-marsh.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <priceView>Offers over $1,050,000</priceView>
     <address display="no">
@@ -236,13 +236,13 @@ Fictional listing for testing.</description>
       <name>Marcus Hale</name>
       <telephone type="mobile">0400 111 204</telephone>
       <email>marcus@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/marcus-hale.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <listingAgent id="2">
       <name>Olivia Marsh</name>
       <telephone type="mobile">0400 111 201</telephone>
       <email>olivia@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/olivia-marsh.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <priceView>Under offer</priceView>
     <address display="yes">
@@ -276,7 +276,7 @@ Fictional listing for testing.</description>
       <name>Daniel Price</name>
       <telephone type="mobile">0400 111 202</telephone>
       <email>daniel@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/daniel-price.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <priceView>$720,000</priceView>
     <price display="yes">720000</price>
@@ -311,7 +311,7 @@ Fictional listing for testing.</description>
       <name>Olivia Marsh</name>
       <telephone type="mobile">0400 111 201</telephone>
       <email>olivia@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/olivia-marsh.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <address display="yes">
       <streetNumber>7</streetNumber>
@@ -340,7 +340,7 @@ Fictional listing for testing.</description>
       <name>Daniel Price</name>
       <telephone type="mobile">0400 111 202</telephone>
       <email>daniel@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/daniel-price.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <address display="yes">
       <subNumber>4</subNumber>
@@ -370,13 +370,13 @@ Fictional listing for testing.</description>
       <name>Olivia Marsh</name>
       <telephone type="mobile">0400 111 201</telephone>
       <email>olivia@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/olivia-marsh.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <listingAgent id="2">
       <name>Marcus Hale</name>
       <telephone type="mobile">0400 111 204</telephone>
       <email>marcus@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/marcus-hale.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <address display="yes">
       <streetNumber>112</streetNumber>
@@ -405,7 +405,7 @@ Fictional listing for testing.</description>
       <name>Marcus Hale</name>
       <telephone type="mobile">0400 111 204</telephone>
       <email>marcus@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/marcus-hale.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <rent period="week" display="yes">750</rent>
     <priceView>$750 per week</priceView>
@@ -446,7 +446,7 @@ Fictional listing for testing.</description>
       <name>Marcus Hale</name>
       <telephone type="mobile">0400 111 204</telephone>
       <email>marcus@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/marcus-hale.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <rent period="week" display="yes">520</rent>
     <priceView>$520 per week</priceView>
@@ -484,7 +484,7 @@ Fictional listing for testing.</description>
       <name>Marcus Hale</name>
       <telephone type="mobile">0400 111 204</telephone>
       <email>marcus@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/marcus-hale.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <rent period="week" display="yes">690</rent>
     <priceView>$690 per week</priceView>
@@ -514,7 +514,7 @@ Fictional listing for testing.</description>
       <name>Olivia Marsh</name>
       <telephone type="mobile">0400 111 201</telephone>
       <email>olivia@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/olivia-marsh.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <priceView>Offers over $985,000</priceView>
     <price display="no">985000</price>
@@ -553,7 +553,7 @@ Fictional listing for testing.</description>
       <name>Marcus Hale</name>
       <telephone type="mobile">0400 111 204</telephone>
       <email>marcus@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/marcus-hale.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <priceView>Auction Saturday 6 December, 11am on site</priceView>
     <price display="no">1450000</price>
@@ -596,13 +596,13 @@ Fictional listing for testing.</description>
       <name>Daniel Price</name>
       <telephone type="mobile">0400 111 202</telephone>
       <email>daniel@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/daniel-price.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <listingAgent id="2">
       <name>Olivia Marsh</name>
       <telephone type="mobile">0400 111 201</telephone>
       <email>olivia@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/olivia-marsh.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <priceView>$649,000</priceView>
     <price display="yes">649000</price>
@@ -640,7 +640,7 @@ Fictional listing for testing.</description>
       <name>Olivia Marsh</name>
       <telephone type="mobile">0400 111 201</telephone>
       <email>olivia@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/olivia-marsh.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <priceView>Expressions of interest close 10 December</priceView>
     <address display="yes">
@@ -676,7 +676,7 @@ Fictional listing for testing.</description>
       <name>Marcus Hale</name>
       <telephone type="mobile">0400 111 204</telephone>
       <email>marcus@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/marcus-hale.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <priceView>$839,000</priceView>
     <price display="yes">839000</price>
@@ -712,7 +712,7 @@ Fictional listing for testing.</description>
       <name>Daniel Price</name>
       <telephone type="mobile">0400 111 202</telephone>
       <email>daniel@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/daniel-price.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <priceView>Offers over $1,100,000</priceView>
     <address display="yes">
@@ -745,7 +745,7 @@ Fictional listing for testing.</description>
       <name>Olivia Marsh</name>
       <telephone type="mobile">0400 111 201</telephone>
       <email>olivia@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/olivia-marsh.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <priceView>Contact agent</priceView>
     <address display="no">
@@ -778,7 +778,7 @@ Fictional listing for testing.</description>
       <name>Olivia Marsh</name>
       <telephone type="mobile">0400 111 201</telephone>
       <email>olivia@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/olivia-marsh.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <address display="yes">
       <streetNumber>27</streetNumber>
@@ -807,7 +807,7 @@ Fictional listing for testing.</description>
       <name>Marcus Hale</name>
       <telephone type="mobile">0400 111 204</telephone>
       <email>marcus@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/marcus-hale.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <address display="yes">
       <subNumber>1</subNumber>
@@ -837,7 +837,7 @@ Fictional listing for testing.</description>
       <name>Daniel Price</name>
       <telephone type="mobile">0400 111 202</telephone>
       <email>daniel@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/daniel-price.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <address display="yes">
       <subNumber>602</subNumber>
@@ -867,7 +867,7 @@ Fictional listing for testing.</description>
       <name>Daniel Price</name>
       <telephone type="mobile">0400 111 202</telephone>
       <email>daniel@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/daniel-price.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <address display="yes">
       <streetNumber>65</streetNumber>
@@ -896,7 +896,7 @@ Fictional listing for testing.</description>
       <name>Marcus Hale</name>
       <telephone type="mobile">0400 111 204</telephone>
       <email>marcus@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/marcus-hale.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <rent period="week" display="yes">680</rent>
     <priceView>$680 per week</priceView>
@@ -935,7 +935,7 @@ Fictional listing for testing.</description>
       <name>Marcus Hale</name>
       <telephone type="mobile">0400 111 204</telephone>
       <email>marcus@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/marcus-hale.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <rent period="week" display="yes">1150</rent>
     <priceView>$1150 per week</priceView>
@@ -972,7 +972,7 @@ Fictional listing for testing.</description>
       <name>Marcus Hale</name>
       <telephone type="mobile">0400 111 204</telephone>
       <email>marcus@harpervale.example</email>
-      <agentPhoto url="https://app.listgate.com.au/mock/agents/marcus-hale.jpg"/>
+      <agentPhoto url="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&amp;h=600&amp;fit=facearea&amp;facepad=3&amp;q=80"/>
     </listingAgent>
     <rent period="week" display="yes">560</rent>
     <priceView>$560 per week</priceView>
