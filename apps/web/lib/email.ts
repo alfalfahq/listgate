@@ -25,7 +25,7 @@ export async function sendEmail(o: { to: string | string[]; subject: string; tex
 export const esc = (v: unknown) =>
   String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-const WORDMARK = `<span style="font:800 20px/1 ${FONT};color:#ffffff;letter-spacing:-0.02em;">list<span style="color:#2ac4ea;">gate</span></span>`;
+const WORDMARK = `<img src="${(process.env.APP_URL || "https://app.listgate.com.au").replace(/\/$/, "")}/listgate-logo-white.png" alt="Listgate" width="101" height="30" style="display:block;height:30px;width:101px;border:0;">`;
 
 /** Branded email shell: navy header, white card, one optional button. */
 export function brandedHtml(o: { preheader: string; heading: string; paragraphs: string[]; button?: { label: string; url: string }; footer: string }) {

@@ -3,6 +3,8 @@
 // Without SMTP_URL nothing is sent and the admin shows the link to copy.
 import nodemailer from "nodemailer";
 
+const WORDMARK = `<img src="${(process.env.APP_URL || "https://app.listgate.com.au").replace(/\/$/, "")}/listgate-logo-white.png" alt="Listgate" width="101" height="30" style="display:block;height:30px;width:101px;border:0;">`;
+
 const esc = (v: string) => v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
@@ -15,7 +17,7 @@ export async function sendInvite(o: { to: string; firstName: string; agency: str
 <div style="display:none;max-height:0;overflow:hidden;">${esc(o.agency)} is set up on Listgate. Set your password to get in.</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eaf9fd;"><tr><td align="center" style="padding:24px 12px;">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;">
-<tr><td style="background:#0d2d4f;padding:16px 24px;"><span style="font:800 20px/1 ${FONT};color:#ffffff;">list<span style="color:#2ac4ea;">gate</span></span></td></tr>
+<tr><td style="background:#0d2d4f;padding:16px 24px;">${WORDMARK}</td></tr>
 <tr><td style="padding:28px 28px 8px;font:400 15px/1.55 ${FONT};color:#262e3b;">
   <h1 style="margin:0 0 16px;font:700 22px/1.3 ${FONT};color:#0d2d4f;">${esc(o.agency)} on Listgate</h1>
   <p style="margin:0 0 14px;">Hi ${esc(o.firstName)},</p>
@@ -48,7 +50,7 @@ export async function sendTicketUpdate(o: { to: string; firstName: string; numbe
 <div style="display:none;max-height:0;overflow:hidden;">${esc((custom || o.reply || heading).slice(0, 100))}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eaf9fd;"><tr><td align="center" style="padding:24px 12px;">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;">
-<tr><td style="background:#0d2d4f;padding:16px 24px;"><span style="font:800 20px/1 ${FONT};color:#ffffff;">list<span style="color:#2ac4ea;">gate</span></span></td></tr>
+<tr><td style="background:#0d2d4f;padding:16px 24px;">${WORDMARK}</td></tr>
 <tr><td style="padding:28px 28px 8px;font:400 15px/1.55 ${FONT};color:#262e3b;">
   <h1 style="margin:0 0 16px;font:700 22px/1.3 ${FONT};color:#0d2d4f;">${esc(heading)}</h1>
   ${custom ? `<div style="margin:0 0 14px;white-space:pre-wrap;">${esc(custom)}</div>` : `<p style="margin:0 0 14px;">Hi ${esc(o.firstName)},</p>

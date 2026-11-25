@@ -12,7 +12,7 @@ export default async function Login() {
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-2 text-white">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <span className="text-2xl font-extrabold tracking-tight text-white">list<span className="text-cyan">gate</span></span>
+          <img src="/listgate-logo-white.png" alt="Listgate" className="h-9 w-auto" />
           <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55">Admin</span>
         </div>
         <div className="card p-6 shadow-xl">

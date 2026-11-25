@@ -55,7 +55,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     </div>
   ));
   // eslint-disable-next-line @next/next/no-img-element
-  const logo = <span className="text-xl font-extrabold tracking-tight text-white">list<span className="text-cyan">gate</span></span>;
+  // eslint-disable-next-line @next/next/no-img-element
+  const logo = <img src="/listgate-logo-white.png" alt="Listgate" className="h-7 w-auto" />;
   const footer = (
     <>
       <div className="px-2 pb-2">
