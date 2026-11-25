@@ -79,7 +79,7 @@ export default async function AgencyPage({ params }: { params: Promise<{ id: str
                   <tr key={p.id}>
                     <td><Link href={`/partners/${p.id}`} className="font-semibold">{p.name}</Link>{!p.active && <span className="ml-1 text-xs text-zinc-500">(paused)</span>}{o && <span className="block text-xs text-zinc-500">{o.changedByName ? `by ${o.changedByName}, ` : ""}{ago(o.updatedAt)}</span>}</td>
                     <td colSpan={2}>
-                      <form action={setAgencyPartner} className="flex items-center gap-2">
+                      <form key={`${o?.enabled}|${o?.partnerAgencyRef}|${o?.updatedAt?.getTime()}`} action={setAgencyPartner} className="flex items-center gap-2">
                         <input type="hidden" name="agencyId" value={a.id} />
                         <input type="hidden" name="partnerId" value={p.id} />
                         <input name="ref" defaultValue={o?.partnerAgencyRef ?? ""} placeholder="optional" className="input w-28 py-1 text-xs" aria-label={`${p.name}'s id for this agency`} />

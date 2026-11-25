@@ -105,7 +105,8 @@ async function send(db: Db, d: typeof deliveries.$inferSelect, partner: Partner)
   const finish = async (ok: boolean, status: number | null, error: string | null) => {
     const ms = Date.now() - started;
     const attempts = d.attempts + 1;
-    const dead = !ok && attempts >= partner.maxAttempts;
+    // A ping is a one-off test: never retried in the background.
+    const dead = !ok && (attempts >= partner.maxAttempts || d.event === "ping");
     await db
       .update(deliveries)
       .set({
@@ -152,15 +153,17 @@ async function send(db: Db, d: typeof deliveries.$inferSelect, partner: Partner)
   }
 }
 
-/** Claims and sends up to `limit` due deliveries. Safe to run from several app instances at once. */
+/** Claims and sends up to `limit` due deliveries. Safe to run from several app instances at once.
+ *  A paused partner's deliveries wait (without using up tries) until it's active again. */
 export async function deliverDue(db: Db, limit = 50) {
   const claimed = await db.execute<{ id: number }>(sql`
     update ${deliveries} set locked_until = now() + interval '2 minutes'
     where id in (
-      select id from ${deliveries}
-      where status in ('pending', 'failed') and next_attempt_at <= now() and (locked_until is null or locked_until < now())
-      order by id limit ${limit}
-      for update skip locked
+      select d.id from ${deliveries} d join ${partners} p on p.id = d.partner_id
+      where d.status in ('pending', 'failed') and d.next_attempt_at <= now() and (d.locked_until is null or d.locked_until < now())
+        and p.active and p.webhook_url is not null
+      order by d.id limit ${limit}
+      for update of d skip locked
     )
     returning id`);
   const ids = ((claimed as unknown as { rows?: { id: number }[] }).rows ?? (claimed as unknown as { id: number }[])).map((r) => Number(r.id));
