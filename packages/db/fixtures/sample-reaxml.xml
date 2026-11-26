@@ -21,7 +21,8 @@
     <category name="House"/>
     <headline>Character home moments from the river</headline>
     <description>Fictional sample listing used to test the Listgate feed.</description>
-    <features><bedrooms>4</bedrooms><bathrooms>2</bathrooms><garages>1</garages><carports>1</carports></features>
+    <features><bedrooms>4</bedrooms><bathrooms>2</bathrooms><ensuite>1</ensuite><toilets>3</toilets><livingAreas>2</livingAreas><garages>1</garages><carports>1</carports><airConditioning>1</airConditioning><poolInGround>yes</poolInGround><study>1</study><dishwasher>0</dishwasher><otherFeatures>Butler's pantry, Solar panels</otherFeatures></features>
+    <councilRates>$2,400 per year</councilRates><waterRates>1100</waterRates><yearBuilt>1998</yearBuilt><buildingDetails><energyRating>6</energyRating></buildingDetails>
     <landDetails><area unit="squareMeter">607</area></landDetails>
     <inspectionTimes><inspection>29-Nov-2026 10:00am to 10:30am</inspection></inspectionTimes>
     <objects>
@@ -50,6 +51,7 @@
     <rent period="week" display="yes">650</rent>
     <address display="yes"><streetNumber>9</streetNumber><street>Test Terrace</street><suburb>Newstead</suburb><state>QLD</state><postcode>4006</postcode></address>
     <category name="Townhouse"/>
+    <dateAvailable>2026-12-15-12:00</dateAvailable><bond>2600</bond>
     <features><bedrooms>3</bedrooms><bathrooms>2</bathrooms><garages>2</garages></features>
   </rental>
   <residential modTime="2026-11-20-09:00:00" status="sold">

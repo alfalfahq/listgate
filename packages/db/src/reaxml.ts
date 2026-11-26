@@ -3,7 +3,7 @@
 // This file only turns XML into normalised listings. ingest.ts stores them and queues partner pushes.
 import { createHash } from "node:crypto";
 import { XMLParser } from "fast-xml-parser";
-import type { Inspection, ListingStatus, Media } from "./schema";
+import type { Inspection, ListingExtras, ListingStatus, Media } from "./schema";
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -85,6 +85,7 @@ export type ParsedListing = {
   videoUrl: string | null;
   inspections: Inspection[];
   agentExtIds: string[];
+  extras: ListingExtras;
   agents: ParsedAgent[];
   modTime: string | null;
   raw: Record<string, unknown>;
@@ -107,6 +108,67 @@ function status(item: Any): ListingStatus {
   if (s === "offmarket") return "off_market";
   if (yes(item.underOffer)) return "under_offer";
   return "current";
+}
+
+// REAXML <features>, <allowances> and <ecoFriendly> flags, as the words partners show.
+const FEATURE_LABELS: Record<string, string> = {
+  airConditioning: "Air conditioning", ductedCooling: "Ducted cooling", ductedHeating: "Ducted heating",
+  splitSystemAirCon: "Split-system air conditioning", splitsystemAircon: "Split-system air conditioning",
+  splitSystemHeating: "Split-system heating", splitsystemHeating: "Split-system heating",
+  reverseCycleAirCon: "Reverse-cycle air conditioning", reverseCycleAircon: "Reverse-cycle air conditioning",
+  evaporativeCooling: "Evaporative cooling", gasHeating: "Gas heating", hydronicHeating: "Hydronic heating",
+  heating: "Heating", openFirePlace: "Fireplace", alarmSystem: "Alarm system", intercom: "Intercom",
+  pool: "Pool", poolInGround: "Pool", poolAboveGround: "Above-ground pool", spa: "Spa", insideSpa: "Spa", outsideSpa: "Outdoor spa",
+  study: "Study", rumpusRoom: "Rumpus room", gym: "Gym", workshop: "Workshop", shed: "Shed",
+  dishwasher: "Dishwasher", builtInRobes: "Built-in robes", floorboards: "Floorboards", broadband: "Broadband",
+  payTV: "Pay TV", vacuumSystem: "Ducted vacuum", tennisCourt: "Tennis court", balcony: "Balcony", deck: "Deck",
+  courtyard: "Courtyard", outdoorEnt: "Outdoor entertaining", fullyFenced: "Fully fenced", remoteGarage: "Remote garage",
+  secureParking: "Secure parking", solarPanels: "Solar panels", solarHotWater: "Solar hot water", waterTank: "Water tank",
+  greyWaterSystem: "Grey water system", petFriendly: "Pet friendly", furnished: "Furnished",
+};
+const flag = (v: unknown) => {
+  const s = ((typeof v === "object" ? attr(v, "value") ?? txt(v) ?? (v ? "yes" : "") : txt(v)) || "").toLowerCase();
+  return !!s && !["0", "no", "false", "none"].includes(s);
+};
+const count = (v: unknown) => {
+  const n = int(v);
+  return n && n > 0 && n < 100 ? n : undefined;
+};
+const money = (v: unknown) => {
+  const s = txt(v);
+  if (!s) return undefined;
+  // "$1,200" or "1200" → "$1,200"; anything with words ("$2,400 per year") is kept as written.
+  return /^\$?[\d,]+(\.\d+)?$/.test(s) ? `$${Math.round(parseFloat(s.replace(/[$,]/g, ""))).toLocaleString("en-AU")}` : s.slice(0, 60);
+};
+
+function extras(item: Any, feat: Any): ListingExtras {
+  const building = (item.buildingDetails || {}) as Any;
+  const words = new Set<string>();
+  for (const group of [feat, item.allowances, item.ecoFriendly] as unknown[]) {
+    if (!group || typeof group !== "object") continue;
+    for (const [k, v] of Object.entries(group as Any)) if (FEATURE_LABELS[k] && flag(v)) words.add(FEATURE_LABELS[k]);
+  }
+  for (const w of (txt(feat.otherFeatures) || "").split(/[,;\n]/)) if (w.trim()) words.add(w.trim().slice(0, 40));
+  const year = int(item.yearBuilt ?? building.yearBuilt ?? item.buildYear);
+  const avail = (txt(item.dateAvailable) || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const bond = int(item.bond);
+  const energy = txt(building.energyRating ?? item.energyRating);
+  const out: ListingExtras = {
+    ensuites: count(feat.ensuite ?? feat.ensuites),
+    toilets: count(feat.toilets),
+    livingAreas: count(feat.livingAreas),
+    garages: count(feat.garages),
+    carports: count(feat.carports),
+    featureList: words.size ? [...words].slice(0, 30) : undefined,
+    councilRates: money(item.councilRates),
+    waterRates: money(item.waterRates),
+    strataFees: money(item.strataFees ?? item.bodyCorporateFees ?? item.bodyCorporate ?? item.outgoings),
+    energyRating: energy && energy.length <= 20 ? energy : undefined,
+    yearBuilt: year && year >= 1800 && year <= new Date().getFullYear() + 5 ? year : undefined,
+    dateAvailable: avail ? `${avail[1]}-${avail[2]}-${avail[3]}` : undefined,
+    bond: bond && bond > 0 ? bond : undefined,
+  };
+  return Object.fromEntries(Object.entries(out).filter(([, v]) => v !== undefined)) as ListingExtras;
 }
 
 function agent(ag: Any): ParsedAgent | null {
@@ -183,6 +245,7 @@ export function parseListing(tag: string, item: Any): ParsedListing | null {
     videoUrl: video,
     inspections,
     agentExtIds: agents.map((a) => a.extId),
+    extras: extras(item, feat),
     agents,
     modTime: attr(item, "modTime") || null,
     raw: item,

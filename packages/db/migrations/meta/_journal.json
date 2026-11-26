@@ -8,6 +8,13 @@
       "when": 1795561218033,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795694841610,
+      "tag": "0001_safe_dreaming_celestial",
+      "breakpoints": true
     }
   ]
 }

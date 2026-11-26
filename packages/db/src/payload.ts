@@ -17,6 +17,7 @@ export function listingPayload(l: Listing, agency: Agency, agentRows: Agent[], p
   const showAddress = l.displayAddress || partner.confidential;
   const showPrice = l.priceDisplay || partner.confidential;
   const showSold = l.soldPriceDisplay || partner.confidential;
+  const x = l.extras ?? {};
   const byExt = new Map(agentRows.map((a) => [a.extId, a]));
   return {
     id: l.id,
@@ -41,6 +42,20 @@ export function listingPayload(l: Listing, agency: Agency, agentRows: Agent[], p
     sold: l.status === "sold" || l.soldDate ? { price: showSold ? l.soldPrice : null, display: l.soldPriceDisplay, date: l.soldDate } : null,
     auctionAt: l.auctionAt,
     features: { beds: l.beds, baths: l.baths, cars: l.cars, landArea: l.landArea, landAreaUnit: l.landAreaUnit, buildingArea: l.buildingArea },
+    // Optional extras, top-level so partners can read them by name. Missing means the feed didn't say.
+    ensuites: x.ensuites ?? null,
+    toilets: x.toilets ?? null,
+    livingAreas: x.livingAreas ?? null,
+    garages: x.garages ?? null,
+    carports: x.carports ?? null,
+    featureList: x.featureList ?? [],
+    councilRates: x.councilRates ?? null,
+    waterRates: x.waterRates ?? null,
+    strataFees: x.strataFees ?? null,
+    energyRating: x.energyRating ?? null,
+    yearBuilt: x.yearBuilt ?? null,
+    dateAvailable: x.dateAvailable ?? null,
+    bond: x.bond ?? null,
     headline: l.headline,
     description: l.description,
     images: l.images.map((m) => m.url),

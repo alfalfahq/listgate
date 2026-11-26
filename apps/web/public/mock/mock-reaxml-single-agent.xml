@@ -46,9 +46,12 @@ Highlights:
 Auction on site Saturday 13 December at 10am unless sold prior.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>4</bedrooms><bathrooms>2</bathrooms><garages>2</garages></features>
+    <features><bedrooms>4</bedrooms><bathrooms>2</bathrooms><garages>2</garages><ensuite>1</ensuite><toilets>3</toilets><livingAreas>2</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><poolInGround>yes</poolInGround><deck>yes</deck><fullyFenced>yes</fullyFenced></features>
+    <councilRates>$2,500 per year</councilRates>
+    <waterRates>$1,200 per year</waterRates>
+    <yearBuilt>1997</yearBuilt>
     <landDetails><area unit="squareMeter">607</area></landDetails>
-    <buildingDetails><area unit="squareMeter">265</area></buildingDetails>
+    <buildingDetails><area unit="squareMeter">265</area><energyRating>6</energyRating></buildingDetails>
     <auction date="2026-12-13T10:00:00"/>
     <inspectionTimes><inspection>29-Nov-2026 10:00am to 10:30am</inspection><inspection>06-Dec-2026 10:00am to 10:30am</inspection></inspectionTimes>
     <objects>
@@ -91,7 +94,10 @@ All four bedrooms have built-in robes, and the main has its own ensuite. The 680
 - Bus to the city at the end of the street
 
 Fictional listing for testing.</description>
-    <features><bedrooms>4</bedrooms><bathrooms>2</bathrooms><garages>2</garages></features>
+    <features><bedrooms>4</bedrooms><bathrooms>2</bathrooms><garages>2</garages><ensuite>1</ensuite><toilets>3</toilets><livingAreas>2</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><study>yes</study><deck>yes</deck><fullyFenced>yes</fullyFenced></features>
+    <councilRates>$2,600 per year</councilRates>
+    <waterRates>$1,300 per year</waterRates>
+    <yearBuilt>1998</yearBuilt>
     <landDetails><area unit="squareMeter">680</area></landDetails>
     <inspectionTimes><inspection>29-Nov-2026 11:00am to 11:30am</inspection></inspectionTimes>
     <objects>
@@ -133,7 +139,11 @@ Floor-to-ceiling glass fills the open-plan living space with light and opens to 
 - Currently owner-occupied; would also suit investors (estimated rent $650 a week)
 
 Fictional listing for testing.</description>
-    <features><bedrooms>2</bedrooms><bathrooms>2</bathrooms><garages>1</garages></features>
+    <features><bedrooms>2</bedrooms><bathrooms>2</bathrooms><garages>1</garages><ensuite>1</ensuite><toilets>2</toilets><livingAreas>1</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><poolInGround>yes</poolInGround><study>yes</study><deck>yes</deck><fullyFenced>yes</fullyFenced></features>
+    <councilRates>$1,800 per year</councilRates>
+    <waterRates>$1,400 per year</waterRates>
+    <strataFees>$1,500 per quarter</strataFees>
+    <yearBuilt>1999</yearBuilt>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600"/>
       <img id="a" url="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1600"/>
@@ -176,7 +186,10 @@ A separate guest wing with its own bathroom suits extended family, a teenager or
 Price on application. Private inspections by appointment.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>5</bedrooms><bathrooms>3</bathrooms><garages>2</garages></features>
+    <features><bedrooms>5</bedrooms><bathrooms>3</bathrooms><garages>2</garages><ensuite>1</ensuite><toilets>4</toilets><livingAreas>2</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><solarPanels>yes</solarPanels><fullyFenced>yes</fullyFenced></features>
+    <councilRates>$1,900 per year</councilRates>
+    <waterRates>$1,000 per year</waterRates>
+    <yearBuilt>2000</yearBuilt>
     <landDetails><area unit="squareMeter">810</area></landDetails>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=1600"/>
@@ -216,7 +229,11 @@ Downstairs, the kitchen, dining and living open to a private courtyard that is s
 The street address will be released when you book an inspection.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>3</bedrooms><bathrooms>2</bathrooms><garages>2</garages></features>
+    <features><bedrooms>3</bedrooms><bathrooms>2</bathrooms><garages>2</garages><ensuite>1</ensuite><toilets>2</toilets><livingAreas>1</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><poolInGround>yes</poolInGround><solarPanels>yes</solarPanels><fullyFenced>yes</fullyFenced></features>
+    <councilRates>$2,000 per year</councilRates>
+    <waterRates>$1,100 per year</waterRates>
+    <strataFees>$1,000 per quarter</strataFees>
+    <yearBuilt>2001</yearBuilt>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=1600"/>
     </objects>
@@ -250,7 +267,10 @@ The cottage keeps its original features, with a sunny kitchen and a back deck ov
 Now under offer. Contact Marcus or Olivia to hear about similar homes before they reach the market.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>3</bedrooms><bathrooms>2</bathrooms><carports>1</carports></features>
+    <features><bedrooms>3</bedrooms><bathrooms>2</bathrooms><carports>1</carports><ensuite>1</ensuite><toilets>2</toilets><livingAreas>1</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><study>yes</study><solarPanels>yes</solarPanels><fullyFenced>yes</fullyFenced></features>
+    <councilRates>$2,100 per year</councilRates>
+    <waterRates>$1,200 per year</waterRates>
+    <yearBuilt>2002</yearBuilt>
     <landDetails><area unit="squareMeter">405</area></landDetails>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1449844908441-8829872d2607?w=1600"/>
@@ -314,7 +334,10 @@ Fictional listing for testing.</description>
     <description>Sold at auction to the third of six registered bidders, after 41 groups through in three weeks.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>4</bedrooms><bathrooms>2</bathrooms><garages>2</garages></features>
+    <features><bedrooms>4</bedrooms><bathrooms>2</bathrooms><garages>2</garages><ensuite>1</ensuite><toilets>3</toilets><livingAreas>2</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><poolInGround>yes</poolInGround><deck>yes</deck><solarPanels>yes</solarPanels><fullyFenced>yes</fullyFenced></features>
+    <councilRates>$2,400 per year</councilRates>
+    <waterRates>$1,000 per year</waterRates>
+    <yearBuilt>2005</yearBuilt>
     <soldDetails><soldPrice display="yes">1580000</soldPrice><soldDate>2026-11-15</soldDate></soldDetails>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1600"/>
@@ -344,7 +367,11 @@ Fictional listing for testing.</description>
     <description>Sold before auction to a local downsizer.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>2</bedrooms><bathrooms>1</bathrooms><garages>1</garages></features>
+    <features><bedrooms>2</bedrooms><bathrooms>1</bathrooms><garages>1</garages><toilets>1</toilets><livingAreas>1</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><study>yes</study><deck>yes</deck><solarPanels>yes</solarPanels><fullyFenced>yes</fullyFenced></features>
+    <councilRates>$2,500 per year</councilRates>
+    <waterRates>$1,100 per year</waterRates>
+    <strataFees>$1,500 per quarter</strataFees>
+    <yearBuilt>2006</yearBuilt>
     <soldDetails><soldPrice display="yes">742000</soldPrice><soldDate>2026-11-08</soldDate></soldDetails>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=1600"/>
@@ -373,7 +400,10 @@ Fictional listing for testing.</description>
     <description>Sold off market to a buyer from our database. Price undisclosed at the vendor's request.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>5</bedrooms><bathrooms>3</bathrooms><garages>2</garages></features>
+    <features><bedrooms>5</bedrooms><bathrooms>3</bathrooms><garages>2</garages><ensuite>1</ensuite><toilets>4</toilets><livingAreas>2</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><poolInGround>yes</poolInGround><study>yes</study><deck>yes</deck><solarPanels>yes</solarPanels><fullyFenced>yes</fullyFenced></features>
+    <councilRates>$2,600 per year</councilRates>
+    <waterRates>$1,200 per year</waterRates>
+    <yearBuilt>2007</yearBuilt>
     <soldDetails><soldPrice display="no">2950000</soldPrice><soldDate>2026-10-24</soldDate></soldDetails>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1600"/>
@@ -412,7 +442,8 @@ Fictional listing for testing.</description>
 Book an inspection online. Applications through 2Apply.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>3</bedrooms><bathrooms>2</bathrooms><garages>1</garages></features>
+    <features><bedrooms>3</bedrooms><bathrooms>2</bathrooms><garages>1</garages><ensuite>1</ensuite><toilets>2</toilets><livingAreas>1</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><poolInGround>yes</poolInGround><deck>yes</deck><fullyFenced>yes</fullyFenced></features>
+    <yearBuilt>1997</yearBuilt>
     <allowances><petFriendly>yes</petFriendly><furnished>no</furnished></allowances>
     <inspectionTimes><inspection>02-Dec-2026 5:00pm to 5:15pm</inspection></inspectionTimes>
     <objects>
@@ -453,7 +484,8 @@ Fictional listing for testing.</description>
 - Water usage paid by the owner up to a fair-use limit
 
 Fictional listing for testing.</description>
-    <features><bedrooms>2</bedrooms><bathrooms>1</bathrooms><garages>1</garages></features>
+    <features><bedrooms>2</bedrooms><bathrooms>1</bathrooms><garages>1</garages><toilets>1</toilets><livingAreas>1</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><study>yes</study><deck>yes</deck><fullyFenced>yes</fullyFenced></features>
+    <yearBuilt>1998</yearBuilt>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1600"/>
     </objects>
@@ -483,7 +515,8 @@ Fictional listing for testing.</description>
     <description>Leased in six days at the full asking rent to a family relocating from Sydney.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>3</bedrooms><bathrooms>1</bathrooms><carports>1</carports></features>
+    <features><bedrooms>3</bedrooms><bathrooms>1</bathrooms><carports>1</carports><toilets>1</toilets><livingAreas>1</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><poolInGround>yes</poolInGround><deck>yes</deck><solarPanels>yes</solarPanels><fullyFenced>yes</fullyFenced></features>
+    <yearBuilt>2005</yearBuilt>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1449844908441-8829872d2607?w=1600"/>
     </objects>
@@ -519,7 +552,10 @@ Three bedrooms, a light-filled lounge, a tidy original kitchen and a back deck o
 - Cannon Hill State School catchment
 
 Fictional listing for testing.</description>
-    <features><bedrooms>3</bedrooms><bathrooms>1</bathrooms><carports>2</carports></features>
+    <features><bedrooms>3</bedrooms><bathrooms>1</bathrooms><carports>2</carports><toilets>1</toilets><livingAreas>1</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><poolInGround>yes</poolInGround><study>yes</study><solarPanels>yes</solarPanels><fullyFenced>yes</fullyFenced></features>
+    <councilRates>$2,200 per year</councilRates>
+    <waterRates>$1,300 per year</waterRates>
+    <yearBuilt>2003</yearBuilt>
     <landDetails><area unit="squareMeter">405</area></landDetails>
     <inspectionTimes><inspection>30-Nov-2026 9:00am to 9:30am</inspection></inspectionTimes>
     <objects>
@@ -560,7 +596,10 @@ The open kitchen with an island bench, butler's pantry and integrated appliances
 Auction on site Saturday 6 December at 11am.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>4</bedrooms><bathrooms>3</bathrooms><garages>2</garages></features>
+    <features><bedrooms>4</bedrooms><bathrooms>3</bathrooms><garages>2</garages><ensuite>1</ensuite><toilets>4</toilets><livingAreas>2</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><deck>yes</deck><solarPanels>yes</solarPanels><fullyFenced>yes</fullyFenced></features>
+    <councilRates>$2,300 per year</councilRates>
+    <waterRates>$1,400 per year</waterRates>
+    <yearBuilt>2004</yearBuilt>
     <landDetails><area unit="squareMeter">506</area></landDetails>
     <auction date="2026-12-06T11:00:00"/>
     <inspectionTimes><inspection>29-Nov-2026 12:00pm to 12:30pm</inspection><inspection>03-Dec-2026 5:30pm to 6:00pm</inspection></inspectionTimes>
@@ -602,7 +641,11 @@ Open-plan living opens to a north-east balcony, and both bedrooms have built-in 
 - Rented at $560 a week until March 2027
 
 Fictional listing for testing.</description>
-    <features><bedrooms>2</bedrooms><bathrooms>1</bathrooms><garages>1</garages></features>
+    <features><bedrooms>2</bedrooms><bathrooms>1</bathrooms><garages>1</garages><toilets>1</toilets><livingAreas>1</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><poolInGround>yes</poolInGround><deck>yes</deck><solarPanels>yes</solarPanels><fullyFenced>yes</fullyFenced></features>
+    <councilRates>$2,400 per year</councilRates>
+    <waterRates>$1,000 per year</waterRates>
+    <strataFees>$1,400 per quarter</strataFees>
+    <yearBuilt>2005</yearBuilt>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=1600"/>
       <img id="a" url="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600"/>
@@ -636,7 +679,10 @@ Set on 1,012m2 behind established gardens, the home offers five bedrooms, four b
 Expressions of interest close Thursday 10 December at 5pm unless sold prior.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>5</bedrooms><bathrooms>4</bathrooms><garages>3</garages></features>
+    <features><bedrooms>5</bedrooms><bathrooms>4</bathrooms><garages>3</garages><ensuite>1</ensuite><toilets>5</toilets><livingAreas>2</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><poolInGround>yes</poolInGround><deck>yes</deck><fullyFenced>yes</fullyFenced></features>
+    <councilRates>$2,500 per year</councilRates>
+    <waterRates>$1,200 per year</waterRates>
+    <yearBuilt>1997</yearBuilt>
     <landDetails><area unit="squareMeter">1012</area></landDetails>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=1600"/>
@@ -675,7 +721,11 @@ Fictional listing for testing.</description>
 - Pet-friendly complex
 
 Fictional listing for testing.</description>
-    <features><bedrooms>3</bedrooms><bathrooms>2</bathrooms><garages>1</garages></features>
+    <features><bedrooms>3</bedrooms><bathrooms>2</bathrooms><garages>1</garages><ensuite>1</ensuite><toilets>2</toilets><livingAreas>1</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><study>yes</study><deck>yes</deck><fullyFenced>yes</fullyFenced></features>
+    <councilRates>$2,600 per year</councilRates>
+    <waterRates>$1,300 per year</waterRates>
+    <strataFees>$1,400 per quarter</strataFees>
+    <yearBuilt>1998</yearBuilt>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=1600"/>
     </objects>
@@ -739,7 +789,10 @@ Fictional listing for testing.</description>
 Contact Olivia for the address and a private inspection.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>4</bedrooms><bathrooms>2</bathrooms><garages>2</garages></features>
+    <features><bedrooms>4</bedrooms><bathrooms>2</bathrooms><garages>2</garages><ensuite>1</ensuite><toilets>3</toilets><livingAreas>2</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><poolInGround>yes</poolInGround><study>yes</study><deck>yes</deck><fullyFenced>yes</fullyFenced></features>
+    <councilRates>$1,800 per year</councilRates>
+    <waterRates>$1,400 per year</waterRates>
+    <yearBuilt>1999</yearBuilt>
     <landDetails><area unit="squareMeter">607</area></landDetails>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1600"/>
@@ -769,7 +822,10 @@ Fictional listing for testing.</description>
     <description>Sold in nine days with 37 groups through the first open home.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>3</bedrooms><bathrooms>1</bathrooms><carports>1</carports></features>
+    <features><bedrooms>3</bedrooms><bathrooms>1</bathrooms><carports>1</carports><toilets>1</toilets><livingAreas>1</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes></features>
+    <councilRates>$1,800 per year</councilRates>
+    <waterRates>$1,300 per year</waterRates>
+    <yearBuilt>2008</yearBuilt>
     <soldDetails><soldPrice display="yes">1015000</soldPrice><soldDate>2026-11-19</soldDate></soldDetails>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1449844908441-8829872d2607?w=1600"/>
@@ -799,7 +855,11 @@ Fictional listing for testing.</description>
     <description>Sold prior to auction to a first-home buyer.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>3</bedrooms><bathrooms>2</bathrooms><garages>1</garages></features>
+    <features><bedrooms>3</bedrooms><bathrooms>2</bathrooms><garages>1</garages><ensuite>1</ensuite><toilets>2</toilets><livingAreas>1</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><poolInGround>yes</poolInGround></features>
+    <councilRates>$1,900 per year</councilRates>
+    <waterRates>$1,400 per year</waterRates>
+    <strataFees>$1,100 per quarter</strataFees>
+    <yearBuilt>2009</yearBuilt>
     <soldDetails><soldPrice display="yes">812000</soldPrice><soldDate>2026-11-02</soldDate></soldDetails>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=1600"/>
@@ -829,7 +889,11 @@ Fictional listing for testing.</description>
     <description>Sold off market. Price undisclosed.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>2</bedrooms><bathrooms>2</bathrooms><garages>1</garages></features>
+    <features><bedrooms>2</bedrooms><bathrooms>2</bathrooms><garages>1</garages><ensuite>1</ensuite><toilets>2</toilets><livingAreas>1</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><study>yes</study></features>
+    <councilRates>$2,000 per year</councilRates>
+    <waterRates>$1,000 per year</waterRates>
+    <strataFees>$1,200 per quarter</strataFees>
+    <yearBuilt>2010</yearBuilt>
     <soldDetails><soldPrice display="no">705000</soldPrice><soldDate>2026-10-28</soldDate></soldDetails>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600"/>
@@ -896,7 +960,8 @@ Fictional listing for testing.</description>
 - 12-month lease preferred
 
 Fictional listing for testing.</description>
-    <features><bedrooms>3</bedrooms><bathrooms>2</bathrooms><garages>1</garages></features>
+    <features><bedrooms>3</bedrooms><bathrooms>2</bathrooms><garages>1</garages><ensuite>1</ensuite><toilets>2</toilets><livingAreas>1</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><poolInGround>yes</poolInGround><study>yes</study><deck>yes</deck><fullyFenced>yes</fullyFenced></features>
+    <yearBuilt>1999</yearBuilt>
     <allowances><petFriendly>yes</petFriendly><furnished>no</furnished></allowances>
     <inspectionTimes><inspection>03-Dec-2026 5:30pm to 5:45pm</inspection></inspectionTimes>
     <objects>
@@ -934,7 +999,8 @@ Fictional listing for testing.</description>
 - Suits professional couples or families
 
 Fictional listing for testing.</description>
-    <features><bedrooms>4</bedrooms><bathrooms>3</bathrooms><garages>2</garages></features>
+    <features><bedrooms>4</bedrooms><bathrooms>3</bathrooms><garages>2</garages><ensuite>1</ensuite><toilets>4</toilets><livingAreas>2</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><solarPanels>yes</solarPanels><fullyFenced>yes</fullyFenced></features>
+    <yearBuilt>2000</yearBuilt>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1600"/>
       <img id="a" url="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600"/>
@@ -966,7 +1032,8 @@ Fictional listing for testing.</description>
     <description>Leased at the first inspection, with four applications received.
 
 Fictional listing for testing.</description>
-    <features><bedrooms>2</bedrooms><bathrooms>1</bathrooms><garages>1</garages></features>
+    <features><bedrooms>2</bedrooms><bathrooms>1</bathrooms><garages>1</garages><toilets>1</toilets><livingAreas>1</livingAreas><airConditioning>yes</airConditioning><dishwasher>yes</dishwasher><builtInRobes>yes</builtInRobes><study>yes</study><deck>yes</deck><solarPanels>yes</solarPanels><fullyFenced>yes</fullyFenced></features>
+    <yearBuilt>2006</yearBuilt>
     <objects>
       <img id="m" url="https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=1600"/>
     </objects>

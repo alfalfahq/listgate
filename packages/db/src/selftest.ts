@@ -53,6 +53,13 @@ async function main() {
   assert.equal(sold.sold.price, 1210000);
   const rental = got.find((g) => g.body.listing.agencyListingId === "DEMO-R201")!.body.listing;
   assert.equal(rental.rentPerWeek, 650);
+  assert.equal(rental.dateAvailable, "2026-12-15");
+  assert.equal(rental.bond, 2600);
+  const rich = got.map((g) => g.body.listing).find((l) => l?.ensuites === 1)!;
+  assert.ok(rich, "extras parsed");
+  assert.deepEqual([rich.toilets, rich.livingAreas, rich.garages, rich.carports, rich.yearBuilt, rich.energyRating], [3, 2, 1, 1, 1998, "6"]);
+  assert.deepEqual(rich.featureList, ["Air conditioning", "Pool", "Study", "Butler's pantry", "Solar panels"]);
+  assert.deepEqual([rich.councilRates, rich.waterRates, rich.strataFees], ["$2,400 per year", "$1,100", null]);
 
   // 2. Same file again: nothing changed, nothing pushed.
   const r2 = await ingestFeed(db, agency, xml, { via: "http" });

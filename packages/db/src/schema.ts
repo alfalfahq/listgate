@@ -171,6 +171,22 @@ export const loginTokens = pgTable(
 // ---------------------------------------------------------------------------
 
 export type Inspection = { start: string; end?: string; text: string };
+/** Optional "at a glance" facts from the feed. Every key is optional; partners get them top-level in the payload. */
+export type ListingExtras = {
+  ensuites?: number;
+  toilets?: number;
+  livingAreas?: number;
+  garages?: number;
+  carports?: number;
+  featureList?: string[];
+  councilRates?: string;
+  waterRates?: string;
+  strataFees?: string;
+  energyRating?: string;
+  yearBuilt?: number;
+  dateAvailable?: string;
+  bond?: number;
+};
 export type Media = { url: string; id?: string; kind?: "photo" | "floorplan" | "video" | "doc" };
 
 export const agents = pgTable(
@@ -235,6 +251,7 @@ export const listings = pgTable(
     videoUrl: text("video_url"),
     inspections: jsonb("inspections").$type<Inspection[]>().notNull().default([]),
     agentExtIds: jsonb("agent_ext_ids").$type<string[]>().notNull().default([]),
+    extras: jsonb("extras").$type<ListingExtras>().notNull().default({}),
     // Everything else in the REAXML element, parsed, for partners that want fields we don't normalise.
     raw: jsonb("raw").$type<Record<string, unknown>>(),
     // REAXML modTime, and a hash of the normalised content: unchanged resends don't go to partners again.

@@ -374,14 +374,26 @@ def listing_xml(l, single):
             f.append(f"<garages>{l['garages']}</garages>")
         if l.get("carports"):
             f.append(f"<carports>{l['carports']}</carports>")
+        h = sum(map(ord, l["id"]))
+        if l["baths"] > 1:
+            f.append("<ensuite>1</ensuite>")
+        f += [f"<toilets>{l['baths'] + (1 if l['beds'] >= 4 else 0)}</toilets>", f"<livingAreas>{2 if l['beds'] >= 4 else 1}</livingAreas>"]
+        flags = ["airConditioning", "dishwasher", "builtInRobes"] + [x for i, x in enumerate(["poolInGround", "study", "deck", "solarPanels", "fullyFenced"]) if (h >> i) & 1]
+        f += [f"<{x}>yes</{x}>" for x in flags]
         out.append("    <features>" + "".join(f) + "</features>")
+        if l["tag"] != "rental":
+            out.append(f"    <councilRates>${1800 + h % 9 * 100:,} per year</councilRates>")
+            out.append(f"    <waterRates>${1000 + h % 5 * 100:,} per year</waterRates>")
+            if l["type"] in ("Unit", "Apartment", "Townhouse"):
+                out.append(f"    <strataFees>${900 + h % 7 * 100:,} per quarter</strataFees>")
+        out.append(f"    <yearBuilt>{1960 + h % 60}</yearBuilt>")
     if l.get("pets"):
         out.append("    <allowances><petFriendly>yes</petFriendly><furnished>no</furnished></allowances>")
     if l.get("land"):
         fr = f'<frontage unit="meter">{l["frontage"]}</frontage>' if l.get("frontage") else ""
         out.append(f'    <landDetails><area unit="squareMeter">{l["land"]}</area>{fr}</landDetails>')
     if l.get("building"):
-        out.append(f'    <buildingDetails><area unit="squareMeter">{l["building"]}</area></buildingDetails>')
+        out.append(f'    <buildingDetails><area unit="squareMeter">{l["building"]}</area><energyRating>{5 + sum(map(ord, l["id"])) % 3}</energyRating></buildingDetails>')
     if l.get("auction"):
         out.append(f'    <auction date="{l["auction"]}"/>')
     if l.get("sold"):
