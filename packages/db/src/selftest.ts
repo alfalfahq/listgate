@@ -12,14 +12,21 @@ process.env.PGLITE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "listgate-selftes
 delete process.env.DATABASE_URL;
 
 async function main() {
-  const { getDb, ingestFeed, ingestSourceFeed, setListingExclusion, ingestProperties, suggestMapping, setAgentPropertyUnlock, setOfficePropertyUnlock, propertyShares, properties, readTable, parseAddressLine, deliverDue, enqueueAgencyForPartner, setAgentUnlock, setOfficeUnlock, setAgentsLocked, agencies, agencyPartners, deliveries, listings, partners, sources } = await import("./index");
+  const { getDb, ingestFeed, ingestSourceFeed, copyDueMedia, setMediaStore, mediaAssets, setListingExclusion, ingestProperties, suggestMapping, setAgentPropertyUnlock, setOfficePropertyUnlock, propertyShares, properties, readTable, parseAddressLine, deliverDue, enqueueAgencyForPartner, setAgentUnlock, setOfficeUnlock, setAgentsLocked, agencies, agencyPartners, deliveries, listings, partners, sources } = await import("./index");
   const db = await getDb();
   const xml = fs.readFileSync(new URL("../fixtures/sample-reaxml.xml", import.meta.url), "utf8");
 
   // Local partner webhook that checks signatures.
   const got: { event: string; body: any; path?: string }[] = [];
   const secret = "whsec_test";
+  const sharp = (await import("sharp")).default;
+  const photo = await sharp({ create: { width: 3000, height: 2000, channels: 3, background: "#2ac4ea" } }).jpeg().toBuffer();
   const server = http.createServer((req, res) => {
+    if (req.url?.startsWith("/img/")) {
+      if (req.url.includes("missing")) return (res.statusCode = 404), res.end();
+      res.setHeader("content-type", "image/jpeg");
+      return res.end(photo);
+    }
     let raw = "";
     req.on("data", (c) => (raw += c));
     req.on("end", () => {
@@ -118,7 +125,7 @@ async function main() {
   const dwGot = async () => {
     got.length = 0;
     await deliverDue(db);
-    return got.filter((g) => g.path === "/dw").map((g) => `${g.event === "listing.removed" ? "-" : "+"}${g.body.listing.agencyListingId}`).sort();
+    return got.filter((g) => g.path === "/dw" && g.body.listing).map((g) => `${g.event === "listing.removed" ? "-" : "+"}${g.body.listing.agencyListingId}`).sort();
   };
 
   // Amy unlocks hers for Dwellicious: L1 (office 1) and L3 (office 2). Not Ben's L2.
@@ -188,6 +195,38 @@ async function main() {
   const delta = await ingestProperties(db, srcNow, csv([p1]), { mode: "delta" });
   assert.equal(delta.removed, 0, "delta never removes");
 
+
+  // 9. Photos: copied into Listgate storage in three sizes; the first push waits for them and carries hosted URLs.
+  const files = new Map<string, Buffer>();
+  setMediaStore({ put: async (key, body) => void files.set(key, body), publicUrl: (key) => `https://cdn.test/${key}` });
+  await db.update(partners).set({ kinds: [], includeSold: true }).where(eq(partners.id, dw.id));
+  await setAgentUnlock(db, { sourceId: src.id, email: "amy@office1.test", partnerId: dw.id, enabled: true });
+  await dwGot();
+  const pic = (n: string) => `http://127.0.0.1:${port}/img/${n}.jpg`;
+  const withPhotos = crmXml.replace("<headline>L1", `<objects><img id="m" url="${pic("a")}"/><img id="a" url="${pic("b")}"/></objects><headline>L1p`);
+  await ingestSourceFeed(db, src, withPhotos, { via: "http" });
+  assert.deepEqual(await dwGot(), [], "held while photos copy");
+  const c = await copyDueMedia(db, 12);
+  assert.deepEqual([c.copied, c.failed, c.repushed > 0], [2, 0, true]);
+  assert.equal(files.size, 3, "same photo twice is stored once, in three sizes");
+  const full = await sharp(files.get([...files.keys()].find((k) => k.endsWith("full.jpg"))!)).metadata();
+  assert.deepEqual([full.width, full.height], [2400, 1600]);
+  got.length = 0;
+  await deliverDue(db);
+  const sent = got.find((g) => g.path === "/dw" && g.body.listing?.agencyListingId === "L1")!.body.listing;
+  assert.ok(sent.images[0].startsWith("https://cdn.test/media/"), "hosted URL sent");
+  assert.equal(sent.media.photos[0].originalUrl, pic("a"));
+  assert.ok(sent.media.photos[0].thumb.endsWith("/thumb.jpg"));
+  assert.deepEqual([sent.media.photos[0].width, sent.media.photos[0].height], [3000, 2000]);
+  // A broken link is retried, then given up on; the listing still goes out with the CRM link.
+  await ingestSourceFeed(db, src, withPhotos.replace(pic("b"), pic("missing")).replace("<headline>L1p", "<headline>L1q"), { via: "http" });
+  for (let i = 0; i < 6; i++) {
+    await db.update(mediaAssets).set({ nextAttemptAt: new Date(0) }).where(eq(mediaAssets.status, "pending"));
+    await copyDueMedia(db, 12);
+  }
+  const [missing] = await db.select().from(mediaAssets).where(eq(mediaAssets.sourceUrl, pic("missing")));
+  assert.equal(missing.status, "failed");
+  setMediaStore(null);
   server.close();
   console.log("selftest passed");
   process.exit(0);

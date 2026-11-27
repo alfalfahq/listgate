@@ -18,11 +18,13 @@
     "selftest": "tsx src/selftest.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1178.0",
     "@electric-sql/pglite": "^0.5.17",
     "drizzle-orm": "^0.45.4",
     "fast-xml-parser": "^5.12.1",
     "marked": "^15.0.12",
     "pg": "^8.23.1",
+    "sharp": "^0.35.5",
     "tsx": "^4.23.15"
   },
   "devDependencies": {

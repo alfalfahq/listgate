@@ -6,6 +6,7 @@ import { enqueue } from "./outbox";
 import { contentHash, parseReaxml, type ParsedFeed, type ParsedListing } from "./reaxml";
 import { agencies, agents, feedRuns, listings, sources, type FeedVia } from "./schema";
 import { officeFor } from "./properties";
+import { listingsAwaitingMedia } from "./media";
 
 export type IngestResult = { received: number; created: number; updated: number; unchanged: number; removed: number; queued: number; runId: number };
 
@@ -102,7 +103,9 @@ export async function ingestFeed(db: Db, agency: Agency, xml: string, opts: { vi
       }
     }
 
-    res.queued = await enqueue(tx, agency.id, changed);
+    // Photos not yet copied: hold the push a few minutes so partners get Listgate photo URLs first time.
+    const hold = await listingsAwaitingMedia(tx as unknown as Db, changed.filter((c) => !c.removedAt));
+    res.queued = await enqueue(tx, agency.id, changed, { hold });
     await tx
       .update(agencies)
       .set({ lastFeedAt: new Date(), ...(feed.agentId && !agency.reaxmlAgentId ? { reaxmlAgentId: feed.agentId } : {}) })

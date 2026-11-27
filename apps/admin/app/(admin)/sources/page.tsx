@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { asc, desc, eq, sql } from "drizzle-orm";
-import { agencies, agencyPartners, agentPartners, getDb, partners, sources } from "@listgate/db";
+import { agencies, agencyPartners, agentPartners, getDb, mediaConfig, mediaStats, partners, sources } from "@listgate/db";
 import { createSource, rotateSourceToken } from "@/app/actions";
 import { CopyButton } from "@/app/copy-button";
 import { PageHeader, Pill, Section, TableCard } from "@/app/kit";
@@ -37,8 +37,15 @@ export default async function Sources() {
     .where(eq(agencyPartners.enabled, true))
     .orderBy(desc(agencyPartners.updatedAt))
     .limit(50);
+  const photos = await mediaStats(db);
+  const store = mediaConfig();
   return (
     <div className="space-y-6">
+      <p className={`rounded-lg px-3 py-2 text-sm ${store ? "bg-sky-50 text-sky-900" : "bg-amber-50 text-amber-900"}`}>
+        {store
+          ? `Listing photos are copied to ${store.bucket} (${store.cdn}): ${(photos.ok ?? 0).toLocaleString()} copied, ${(photos.pending ?? 0).toLocaleString()} waiting, ${(photos.failed ?? 0).toLocaleString()} couldn't be fetched (partners get the CRM link for those).`
+          : "Photo copying is off: add SPACES_KEY and SPACES_SECRET to the app's settings in DigitalOcean. Until then partners get the CRM's photo links."}
+      </p>
       <PageHeader icon="bolt" title="CRM feeds" sub="One feed from a CRM for every agency on it. Split into offices by <agentID>. Nothing goes to partners until an agent unlocks their listings at /agent, or approves their whole office." />
       <TableCard empty={rows.length ? false : "No CRM feeds yet. Add one below."}>
         <thead><tr><th>CRM</th><th>Feed URL</th><th>Offices</th><th>Live listings</th><th>Agents unlocked</th><th>Last feed</th><th /></tr></thead>

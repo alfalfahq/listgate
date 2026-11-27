@@ -449,6 +449,30 @@ export const agentPartners = pgTable(
   (t) => [primaryKey({ columns: [t.sourceId, t.email, t.partnerId] }), index("agent_partners_partner_idx").on(t.partnerId)]
 );
 
+/**
+ * A copy of one listing photo or floorplan, held by Listgate (Spaces + CDN) so partners never depend on CRM links.
+ * Keyed by the CRM's URL; files are stored under the image's content hash, so a re-sent photo is stored once.
+ */
+export const mediaAssets = pgTable(
+  "media_assets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sourceUrl: text("source_url").notNull(),
+    status: text("status").$type<"pending" | "ok" | "failed">().notNull().default("pending"),
+    contentHash: text("content_hash"),
+    width: integer("width"),
+    height: integer("height"),
+    bytes: integer("bytes"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    error: text("error"),
+    storedAt: timestamp("stored_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("media_assets_url_unique").on(t.sourceUrl), index("media_assets_due_idx").on(t.status, t.nextAttemptAt)]
+);
+
 /** One listing kept away from one partner, whatever the agent or office unlocks say. */
 export const listingExclusions = pgTable(
   "listing_exclusions",

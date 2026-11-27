@@ -13,6 +13,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { and, desc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import type { Db } from "./index";
 import { listingPayload, removedPayload, PAYLOAD_VERSION } from "./payload";
+import { assetsFor, mediaPublicUrl } from "./media";
 import { agencies, agencyPartners, agentPartners, agents, deliveries, listingExclusions, listings, partners, type DeliveryEvent } from "./schema";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0] | Db;
@@ -47,11 +48,13 @@ export async function pushPartnersFor(db: Tx, agencyId: string) {
 type Row = Pick<Listing, "id" | "version" | "kind" | "status" | "removedAt"> & { agentExtIds?: string[] };
 
 /** One delivery. One that hasn't been picked up yet is updated in place, so ten resends in a minute mean one push. */
-async function put(db: Tx, p: Partner, agencyId: string, l: Row, event: DeliveryEvent) {
+async function put(db: Tx, p: Partner, agencyId: string, l: Row, event: DeliveryEvent, holdMs = 0) {
   const now = new Date();
+  // A new listing whose photos are still being copied waits a little, so its first push carries Listgate photo URLs.
+  const at = holdMs && event !== "listing.removed" ? new Date(now.getTime() + holdMs) : now;
   const updated = await db
     .update(deliveries)
-    .set({ event, listingVersion: l.version, status: "pending", attempts: 0, nextAttemptAt: now, lastError: null, updatedAt: now })
+    .set({ event, listingVersion: l.version, status: "pending", attempts: 0, nextAttemptAt: at, lastError: null, updatedAt: now })
     .where(
       and(
         eq(deliveries.partnerId, p.id),
@@ -61,7 +64,7 @@ async function put(db: Tx, p: Partner, agencyId: string, l: Row, event: Delivery
       )
     )
     .returning({ id: deliveries.id });
-  if (!updated.length) await db.insert(deliveries).values({ partnerId: p.id, agencyId, listingId: l.id, event, listingVersion: l.version });
+  if (!updated.length) await db.insert(deliveries).values({ partnerId: p.id, agencyId, listingId: l.id, event, listingVersion: l.version, nextAttemptAt: at });
 }
 
 /** For agencies from a CRM-wide feed: partners each listing's agents unlocked (listing id → partners). */
@@ -91,7 +94,8 @@ async function unlockedPartnersFor(db: Tx, agencyId: string, rows: Row[]) {
  * one of the listing's agents unlocked. A partner that was sent the listing but no longer qualifies (the agent locked it
  * again, or left the listing) gets listing.removed.
  */
-export async function enqueue(db: Tx, agencyId: string, rows: Row[], opts: { partners?: Partner[]; event?: DeliveryEvent } = {}) {
+export async function enqueue(db: Tx, agencyId: string, rows: Row[], opts: { partners?: Partner[]; event?: DeliveryEvent; hold?: Set<string>; holdMs?: number } = {}) {
+  const hold = (l: Row) => (opts.hold?.has(l.id) ? opts.holdMs ?? 180_000 : 0);
   if (!rows.length) return 0;
   let n = 0;
   // Listings an agent kept away from a partner: always a removal for that partner.
@@ -100,7 +104,7 @@ export async function enqueue(db: Tx, agencyId: string, rows: Row[], opts: { par
   );
   const ev = (p: Partner, l: Row) => (ex.has(`${l.id}:${p.id}`) ? "listing.removed" : opts.event ?? eventFor(p, l));
   if (opts.partners) {
-    for (const p of opts.partners) for (const l of rows) (await put(db, p, agencyId, l, ev(p, l)), n++);
+    for (const p of opts.partners) for (const l of rows) (await put(db, p, agencyId, l, ev(p, l), hold(l)), n++);
     return n;
   }
   const base = await pushPartnersFor(db, agencyId);
@@ -116,7 +120,7 @@ export async function enqueue(db: Tx, agencyId: string, rows: Row[], opts: { par
   for (const l of rows) {
     const targets = new Map(base.map((p) => [p.id, p]));
     for (const p of unlocked.get(l.id) ?? []) targets.set(p.id, p);
-    for (const p of targets.values()) (await put(db, p, agencyId, l, ev(p, l)), n++);
+    for (const p of targets.values()) (await put(db, p, agencyId, l, ev(p, l), hold(l)), n++);
     for (const d of stale) {
       const p = staleP.get(d.partnerId);
       if (d.listingId !== l.id || targets.has(d.partnerId) || !p?.active || !p.webhookUrl) continue;
@@ -179,7 +183,7 @@ export async function buildBody(db: Db, d: typeof deliveries.$inferSelect, partn
   const [ap] = await db.select({ ref: agencyPartners.partnerAgencyRef }).from(agencyPartners).where(and(eq(agencyPartners.agencyId, l.agencyId), eq(agencyPartners.partnerId, partner.id)));
   if (d.event === "listing.removed") return { ...base, listing: removedPayload(l, agency, ap?.ref) };
   const agentRows = l.agentExtIds.length ? await db.select().from(agents).where(and(eq(agents.agencyId, l.agencyId), inArray(agents.extId, l.agentExtIds))) : [];
-  return { ...base, listing: listingPayload(l, agency, agentRows, partner, ap?.ref) };
+  return { ...base, listing: listingPayload(l, agency, agentRows, partner, ap?.ref, { assets: await assetsFor(db, l), publicUrl: mediaPublicUrl() }) };
 }
 
 async function send(db: Db, d: typeof deliveries.$inferSelect, partner: Partner) {

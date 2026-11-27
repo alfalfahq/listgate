@@ -1,4 +1,5 @@
 // What partners receive, by webhook push or the pull API. Version 1. Change carefully: partners parse this.
+import { mediaView, type MediaAsset } from "./media";
 import type { agencies, agents, listings, partners } from "./schema";
 
 type Listing = typeof listings.$inferSelect;
@@ -13,7 +14,17 @@ export function fullAddress(l: Pick<Listing, "unitNumber" | "streetNumber" | "st
   return [street, [l.suburb, l.state, l.postcode].filter(Boolean).join(" ")].filter(Boolean).join(", ");
 }
 
-export function listingPayload(l: Listing, agency: Agency, agentRows: Agent[], partner: Partner, partnerAgencyRef?: string | null) {
+export function listingPayload(
+  l: Listing,
+  agency: Agency,
+  agentRows: Agent[],
+  partner: Partner,
+  partnerAgencyRef?: string | null,
+  media?: { assets: Map<string, MediaAsset>; publicUrl: ((key: string) => string) | null }
+) {
+  const view = (m: Listing["images"][number]) => mediaView(m, media?.assets.get(m.url), media?.publicUrl ?? null);
+  const photos = l.images.map(view);
+  const plans = l.floorplans.map(view);
   const showAddress = l.displayAddress || partner.confidential;
   const showPrice = l.priceDisplay || partner.confidential;
   const showSold = l.soldPriceDisplay || partner.confidential;
@@ -58,8 +69,11 @@ export function listingPayload(l: Listing, agency: Agency, agentRows: Agent[], p
     bond: x.bond ?? null,
     headline: l.headline,
     description: l.description,
-    images: l.images.map((m) => m.url),
-    floorplans: l.floorplans.map((m) => m.url),
+    // Listgate-hosted copies when we have them (full size), else the CRM's link.
+    images: photos.map((m) => m.url),
+    floorplans: plans.map((m) => m.url),
+    // Sizes, dimensions and the CRM's original link for each image. hosted=false means it's still the CRM's link.
+    media: { photos, floorplans: plans },
     videoUrl: l.videoUrl,
     inspections: l.inspections,
     agents: l.agentExtIds

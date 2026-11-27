@@ -19,6 +19,7 @@ export * from "./payload";
 export * from "./outbox";
 export * from "./ingest";
 export * from "./properties";
+export * from "./media";
 export { schema };
 
 export type Db = NodePgDatabase<typeof schema>;

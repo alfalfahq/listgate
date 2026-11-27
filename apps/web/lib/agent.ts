@@ -18,6 +18,7 @@ import {
   partnersForListing,
   properties,
   sources,
+  thumbsFor,
 } from "@listgate/db";
 import { ssoOn } from "./crm";
 
@@ -73,6 +74,9 @@ export async function agentOffices(me: Me) {
     rows.map(async ({ agency, source }) => {
       const st = await standing(me, agency, source);
       const mine = (await agentListings(db, source.id, e, { live: true })).filter((l) => l.agencyId === agency.id);
+      const photoOf = (l: (typeof mine)[number]) => l.images.find((m) => !m.kind || m.kind === "photo")?.url ?? null;
+      const thumbMap = await thumbsFor(db, mine.slice(0, 4).map(photoOf));
+      const photos = Object.fromEntries(mine.slice(0, 4).map((l) => [l.id, thumbMap.get(photoOf(l) ?? "") ?? photoOf(l)]));
       const [{ n }] = await db.select({ n: count() }).from(listings).where(and(eq(listings.agencyId, agency.id), isNull(listings.removedAt)));
       const unlocks = await db.select().from(agentPartners).where(and(eq(agentPartners.sourceId, source.id), eq(agentPartners.email, e), eq(agentPartners.enabled, true)));
       const office = await db.select().from(agencyPartners).where(and(eq(agencyPartners.agencyId, agency.id), eq(agencyPartners.enabled, true)));
@@ -85,6 +89,7 @@ export async function agentOffices(me: Me) {
         source,
         standing: st,
         mine,
+        photos,
         officeCount: n,
         mineOn: unlocks.map((u) => u.partnerId),
         officeOn: office.map((o) => ({ partnerId: o.partnerId, by: o.changedByName })),
@@ -131,6 +136,8 @@ export async function searchListings(me: Me, agencyId: string, q: string) {
   const rows = all
     ? await db.select().from(listings).where(and(eq(listings.agencyId, agencyId), isNull(listings.removedAt), match)).orderBy(asc(listings.suburb), asc(listings.street)).limit(25)
     : (await agentListings(db, o.source.id, e, { live: true })).filter((l) => l.agencyId === agencyId && (!text || [l.street, l.suburb, l.headline, l.extId, `${l.streetNumber ?? ""} ${l.street ?? ""}`].some((v) => v?.toLowerCase().includes(text.toLowerCase())))).slice(0, 25);
+  const first = (l: (typeof rows)[number]) => l.images.find((m) => !m.kind || m.kind === "photo")?.url ?? null;
+  const thumbs = await thumbsFor(db, rows.map(first));
   const ex = rows.length ? await db.select().from(listingExclusions).where(inArray(listingExclusions.listingId, rows.map((r) => r.id))) : [];
   return {
     scope: all ? ("office" as const) : ("mine" as const),
@@ -138,7 +145,7 @@ export async function searchListings(me: Me, agencyId: string, q: string) {
       rows.map(async (l) => ({
         id: l.id,
         address: [[l.unitNumber && l.streetNumber ? `${l.unitNumber}/${l.streetNumber}` : l.streetNumber, l.street].filter(Boolean).join(" "), l.suburb].filter(Boolean).join(", ") || l.headline || l.extId,
-        photo: l.images.find((m) => !m.kind || m.kind === "photo")?.url ?? null,
+        photo: thumbs.get(first(l) ?? "") ?? first(l),
         status: l.status,
         kind: l.kind,
         goingTo: [...(await partnersForListing(db, l))],

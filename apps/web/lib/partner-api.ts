@@ -1,7 +1,7 @@
 // Partner pull API (v1). Partners authenticate with their API key: Authorization: Bearer lg_…
 // They only ever see listings from agencies that have switched them on.
 import { and, eq, inArray } from "drizzle-orm";
-import { agencies, agencyPartners, agentPartners, agents, eventFor, getDb, hashToken, listingPayload, partnersForListing, removedPayload, partners, type listings } from "@listgate/db";
+import { agencies, agencyPartners, agentPartners, agents, eventFor, getDb, hashToken, assetsFor, listingPayload, mediaPublicUrl, partnersForListing, removedPayload, partners, type listings } from "@listgate/db";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -54,7 +54,7 @@ export async function payloads(p: Partner, rows: Listing[], refs: Map<string, { 
       // Not shared with this partner (agent didn't unlock it, or kept it away): sent as removed, without the details.
       const shared = (await partnersForListing(db, l)).has(p.id);
       if (!shared) return { ...removedPayload(l, a.agency, a.ref), removed: true };
-      return { ...listingPayload(l, a.agency, mine, p, a.ref), removed: !shared || eventFor(p, l) === "listing.removed" };
+      return { ...listingPayload(l, a.agency, mine, p, a.ref, { assets: await assetsFor(db, l), publicUrl: mediaPublicUrl() }), removed: !shared || eventFor(p, l) === "listing.removed" };
     })
   );
 }

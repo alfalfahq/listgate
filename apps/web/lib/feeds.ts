@@ -1,6 +1,6 @@
 import { agencyByFeedToken, FeedError, getDb, ingestFeed, ingestSourceFeed, sourceByFeedToken, type FeedVia } from "@listgate/db";
 import { config } from "./config";
-import { kickDeliveries } from "./deliver";
+import { kickDeliveries, kickMedia } from "./deliver";
 
 /**
  * Reads a feed body (raw XML, or a multipart upload with one file) and stores it for the agency with this token,
@@ -30,6 +30,7 @@ export async function receiveFeed(req: Request, token: string, via: FeedVia, fil
   try {
     const r = agency ? await ingestFeed(db, agency, xml, { via, fileName }) : await ingestSourceFeed(db, source!, xml, { via, fileName });
     if (r.queued) kickDeliveries();
+    kickMedia();
     return Response.json({ ok: true, ...r });
   } catch (e) {
     if (e instanceof FeedError) return Response.json({ ok: false, error: e.message }, { status: 400 });

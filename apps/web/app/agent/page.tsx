@@ -118,7 +118,7 @@ export default async function AgentPage({ searchParams }: { searchParams: Promis
           const approve = st.verifiedMode ? (st.principal ? "verified" : "no") : "tick";
           const locked = o.agency.agentsLockedAt ? o.agency.agentsLockedReason || "yes" : null;
           const verifyBtn = st.verifiedMode && !st.verified && ssoOn(o.source);
-          const photo = (l: (typeof o.mine)[number]) => l.images.find((m) => !m.kind || m.kind === "photo")?.url ?? null;
+          const photo = (l: (typeof o.mine)[number]) => o.photos[l.id] ?? null;
           return (
             <section key={o.agency.id} className="card flex flex-col gap-4 p-5">
               <div className="flex flex-wrap items-center gap-3">
