@@ -13,7 +13,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { and, desc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import type { Db } from "./index";
 import { listingPayload, removedPayload, PAYLOAD_VERSION } from "./payload";
-import { agencies, agencyPartners, agentPartners, agents, deliveries, listings, partners, type DeliveryEvent } from "./schema";
+import { agencies, agencyPartners, agentPartners, agents, deliveries, listingExclusions, listings, partners, type DeliveryEvent } from "./schema";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0] | Db;
 type Partner = typeof partners.$inferSelect;
@@ -94,8 +94,13 @@ async function unlockedPartnersFor(db: Tx, agencyId: string, rows: Row[]) {
 export async function enqueue(db: Tx, agencyId: string, rows: Row[], opts: { partners?: Partner[]; event?: DeliveryEvent } = {}) {
   if (!rows.length) return 0;
   let n = 0;
+  // Listings an agent kept away from a partner: always a removal for that partner.
+  const ex = new Set(
+    (await db.select({ l: listingExclusions.listingId, p: listingExclusions.partnerId }).from(listingExclusions).where(inArray(listingExclusions.listingId, rows.map((r) => r.id)))).map((x) => `${x.l}:${x.p}`)
+  );
+  const ev = (p: Partner, l: Row) => (ex.has(`${l.id}:${p.id}`) ? "listing.removed" : opts.event ?? eventFor(p, l));
   if (opts.partners) {
-    for (const p of opts.partners) for (const l of rows) (await put(db, p, agencyId, l, opts.event ?? eventFor(p, l)), n++);
+    for (const p of opts.partners) for (const l of rows) (await put(db, p, agencyId, l, ev(p, l)), n++);
     return n;
   }
   const base = await pushPartnersFor(db, agencyId);
@@ -111,7 +116,7 @@ export async function enqueue(db: Tx, agencyId: string, rows: Row[], opts: { par
   for (const l of rows) {
     const targets = new Map(base.map((p) => [p.id, p]));
     for (const p of unlocked.get(l.id) ?? []) targets.set(p.id, p);
-    for (const p of targets.values()) (await put(db, p, agencyId, l, opts.event ?? eventFor(p, l)), n++);
+    for (const p of targets.values()) (await put(db, p, agencyId, l, ev(p, l)), n++);
     for (const d of stale) {
       const p = staleP.get(d.partnerId);
       if (d.listingId !== l.id || targets.has(d.partnerId) || !p?.active || !p.webhookUrl) continue;
@@ -133,6 +138,7 @@ export async function setAgentUnlock(db: Db, o: { sourceId: string; email: strin
     .values({ sourceId: o.sourceId, email, partnerId: o.partnerId, enabled: o.enabled, userId: o.userId ?? null })
     .onConflictDoUpdate({ target: [agentPartners.sourceId, agentPartners.email, agentPartners.partnerId], set: { enabled: o.enabled, userId: o.userId ?? null, updatedAt: new Date() } });
   const rows = await agentListings(db, o.sourceId, email, { live: o.enabled });
+  await touch(db, rows.map((r) => r.id));
   const byAgency = new Map<string, typeof rows>();
   for (const r of rows) byAgency.set(r.agencyId, [...(byAgency.get(r.agencyId) ?? []), r]);
   let n = 0;
@@ -289,6 +295,7 @@ export async function setOfficeUnlock(db: Db, o: { agencyId: string; partner: Pa
     .values({ agencyId: o.agencyId, partnerId: o.partner.id, enabled: o.enabled, changedById: o.userId, changedByName: o.userName })
     .onConflictDoUpdate({ target: [agencyPartners.agencyId, agencyPartners.partnerId], set: { enabled: o.enabled, changedById: o.userId, changedByName: o.userName, updatedAt: new Date() } });
   if (o.enabled && o.authorisedBy) await db.update(agencies).set({ authorisedAt: new Date(), authorisedBy: o.authorisedBy }).where(and(eq(agencies.id, o.agencyId), isNull(agencies.authorisedAt)));
+  await db.update(listings).set({ updatedAt: new Date() }).where(eq(listings.agencyId, o.agencyId));
   if (!o.partner.active || !o.partner.webhookUrl) return 0;
   if (o.enabled) return enqueueAgencyForPartner(db, o.agencyId, o.partner, "backfill");
   const rows = await db.select().from(listings).where(eq(listings.agencyId, o.agencyId));
@@ -299,5 +306,33 @@ export async function setOfficeUnlock(db: Db, o: { agencyId: string; partner: Pa
 export async function setAgentsLocked(db: Db, agencyId: string, locked: boolean, reason?: string | null) {
   await db.update(agencies).set({ agentsLockedAt: locked ? new Date() : null, agentsLockedReason: locked ? reason || null : null }).where(eq(agencies.id, agencyId));
   const rows = await db.select().from(listings).where(eq(listings.agencyId, agencyId));
+  await touch(db, rows.map((r) => r.id));
   return enqueue(db, agencyId, locked ? rows : rows.filter((r) => !r.removedAt));
+}
+
+/** Bumps updatedAt so pull-API partners see a visibility change on their next `updatedSince` sync. */
+async function touch(db: Tx, ids: string[]) {
+  if (ids.length) await db.update(listings).set({ updatedAt: new Date() }).where(inArray(listings.id, ids));
+}
+
+/** Keeps one listing away from one partner (or lets it through again), and tells the partner. */
+export async function setListingExclusion(db: Db, o: { listingId: string; partnerId: string; excluded: boolean; userId?: string | null; byName?: string | null }) {
+  if (o.excluded) await db.insert(listingExclusions).values({ listingId: o.listingId, partnerId: o.partnerId, userId: o.userId ?? null, byName: o.byName ?? null }).onConflictDoNothing();
+  else await db.delete(listingExclusions).where(and(eq(listingExclusions.listingId, o.listingId), eq(listingExclusions.partnerId, o.partnerId)));
+  await touch(db, [o.listingId]);
+  const [l] = await db.select().from(listings).where(eq(listings.id, o.listingId));
+  return l ? enqueue(db, l.agencyId, [l]) : 0;
+}
+
+/** Partners a listing currently goes to (agency-level, agent unlocks, minus exclusions). For the pull API and the agent page. */
+export async function partnersForListing(db: Db, l: Listing) {
+  const base = await db
+    .select({ id: agencyPartners.partnerId })
+    .from(agencyPartners)
+    .where(and(eq(agencyPartners.agencyId, l.agencyId), eq(agencyPartners.enabled, true)));
+  const unlocked = await unlockedPartnersFor(db, l.agencyId, [l]);
+  const ex = await db.select({ p: listingExclusions.partnerId }).from(listingExclusions).where(eq(listingExclusions.listingId, l.id));
+  const out = new Set([...base.map((b) => b.id), ...(unlocked.get(l.id) ?? []).map((p) => p.id)]);
+  for (const e of ex) out.delete(e.p);
+  return out;
 }

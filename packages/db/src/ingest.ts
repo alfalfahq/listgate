@@ -5,7 +5,7 @@ import type { Db } from "./index";
 import { enqueue } from "./outbox";
 import { contentHash, parseReaxml, type ParsedFeed, type ParsedListing } from "./reaxml";
 import { agencies, agents, feedRuns, listings, sources, type FeedVia } from "./schema";
-import { initials, newFeedToken, slugify } from "./tokens";
+import { officeFor } from "./properties";
 
 export type IngestResult = { received: number; created: number; updated: number; unchanged: number; removed: number; queued: number; runId: number };
 
@@ -146,17 +146,8 @@ export async function ingestSourceFeed(db: Db, source: Source, xml: string, opts
   }
   const out: SourceIngestResult = { received: 0, created: 0, updated: 0, unchanged: 0, removed: 0, queued: 0, agencies: groups.size, newAgencies: 0, skipped };
   for (const [ref, part] of groups) {
-    let [agency] = await db.select().from(agencies).where(and(eq(agencies.sourceId, source.id), eq(agencies.reaxmlAgentId, ref)));
-    if (!agency) {
-      const name = `${source.name} agency ${ref}`;
-      const base = `${source.slug}-${slugify(ref)}`.slice(0, 50);
-      const values = { name, initials: initials(source.name), reaxmlAgentId: ref, crm: source.name, sourceId: source.id };
-      [agency] = await db.insert(agencies).values({ ...values, slug: base, feedToken: newFeedToken() }).onConflictDoNothing().returning();
-      if (!agency) [agency] = await db.select().from(agencies).where(and(eq(agencies.sourceId, source.id), eq(agencies.reaxmlAgentId, ref)));
-      // Slug taken by an unrelated agency: same slug with a random tail.
-      if (!agency) [agency] = await db.insert(agencies).values({ ...values, slug: `${base}-${newFeedToken().slice(0, 5).toLowerCase()}`, feedToken: newFeedToken() }).returning();
-      if (agency.createdAt.getTime() > Date.now() - 60_000) out.newAgencies++;
-    }
+    const { agency, created } = await officeFor(db, source, ref);
+    if (created) out.newAgencies++;
     const r = await ingestFeed(db, agency, "", opts, { agentId: ref, listings: part, skipped: 0 });
     for (const k of ["received", "created", "updated", "unchanged", "removed", "queued"] as const) out[k] += r[k];
   }

@@ -48,7 +48,7 @@ export default async function AgencyApp({ searchParams }: { searchParams: Promis
   );
 
   // Agents from a CRM-wide feed have no agency login: their page is /agent.
-  if (!pick && (await agentOffices(me.email)).length) redirect("/agent");
+  if (!pick && (await agentOffices(me)).length) redirect("/agent");
   if (!pick) {
     return (
       <>

@@ -45,7 +45,7 @@ export default async function Sources() {
         <tbody>
           {rows.map(({ s, offices, listings, agents }) => (
             <tr key={s.id}>
-              <td><span className="font-semibold">{s.name}</span>{s.suspendedAt && <Pill tone="red">Suspended</Pill>}<span className="block text-xs text-zinc-500">{s.contactEmail ?? s.slug}</span></td>
+              <td><Link href={`/sources/${s.id}`} className="font-semibold">{s.name}</Link>{s.suspendedAt && <Pill tone="red">Suspended</Pill>}<span className="block text-xs text-zinc-500">{s.contactEmail ?? s.slug}</span></td>
               <td><code className="block max-w-xs truncate text-xs">{feedUrl(s.feedToken)}</code><CopyButton text={feedUrl(s.feedToken)} label="Copy URL" className="text-xs" /></td>
               <td><Link href={`/agencies?crm=${encodeURIComponent(s.name)}`}>{offices}</Link></td>
               <td>{listings}</td>

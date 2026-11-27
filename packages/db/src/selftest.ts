@@ -12,7 +12,7 @@ process.env.PGLITE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "listgate-selftes
 delete process.env.DATABASE_URL;
 
 async function main() {
-  const { getDb, ingestFeed, ingestSourceFeed, deliverDue, enqueueAgencyForPartner, setAgentUnlock, setOfficeUnlock, setAgentsLocked, agencies, agencyPartners, deliveries, listings, partners, sources } = await import("./index");
+  const { getDb, ingestFeed, ingestSourceFeed, setListingExclusion, ingestProperties, suggestMapping, setAgentPropertyUnlock, setOfficePropertyUnlock, propertyShares, properties, readTable, parseAddressLine, deliverDue, enqueueAgencyForPartner, setAgentUnlock, setOfficeUnlock, setAgentsLocked, agencies, agencyPartners, deliveries, listings, partners, sources } = await import("./index");
   const db = await getDb();
   const xml = fs.readFileSync(new URL("../fixtures/sample-reaxml.xml", import.meta.url), "utf8");
 
@@ -135,12 +135,59 @@ async function main() {
   await setOfficeUnlock(db, { agencyId: off1.id, partner: dw, enabled: false, userId: null as unknown as string, userName: "Amy" });
   assert.deepEqual(await dwGot(), ["+L1", "-L2"]);
 
+  // Amy keeps L1 away from Dwellicious, then lets it through again.
+  const [l1] = await db.select().from(listings).where(eq(listings.extId, "L1"));
+  await setListingExclusion(db, { listingId: l1.id, partnerId: dw.id, excluded: true, byName: "Amy" });
+  assert.deepEqual(await dwGot(), ["-L1"]);
+  await ingestSourceFeed(db, src, crmXml.replace("<headline>L1", "<headline>L1c"), { via: "http" });
+  assert.deepEqual(await dwGot(), ["-L1"], "still kept away after an update");
+  await setListingExclusion(db, { listingId: l1.id, partnerId: dw.id, excluded: false });
+  assert.deepEqual(await dwGot(), ["+L1"]);
+
   // A complaint: office 2 is locked, so Amy's unlock stops applying there.
   await setAgentsLocked(db, off2.id, true, "Principal asked us to stop");
   assert.deepEqual(await dwGot(), ["-L3"]);
   // Amy locks hers: L1 removed. L3 isn't sent again (already removed).
   await setAgentUnlock(db, { sourceId: src.id, email: "amy@office1.test", partnerId: dw.id, enabled: false });
   assert.deepEqual(await dwGot(), ["-L1"]);
+  // 8. Property database: CSV with owner columns, mapped once; owner details never stored.
+  assert.deepEqual(parseAddressLine("Unit 3/12 Smith St, Paddington QLD 4064"), { unitNumber: "3", streetNumber: "12", street: "Smith St", suburb: "Paddington", state: "QLD", postcode: "4064" });
+  assert.equal(readTable('[{"id":1,"address":{"suburb":"Ascot"}}]').columns.join(), "id,address.suburb");
+  const csv = (rows: string[]) => ["Property ID,Office ID,Agent Email,Address,Bedrooms,Land Size,Owner Name,Owner Phone", ...rows].join("\n");
+  const p1 = 'P1,OFF1,amy@office1.test,"1 Test St, Paddington QLD 4064",3,0.06ha,Jane Citizen,0400 000 000';
+  const p2 = 'P2,OFF1,ben@office1.test,"2 Test St, Paddington QLD 4064",4,600,John Citizen,0400 111 111';
+  const p3 = 'P3,OFF1,,"3 Test St, Paddington QLD 4064",2,,Ann Citizen,0400 222 222';
+  let [srcNow] = await db.select().from(sources).where(eq(sources.id, src.id));
+  const first = await ingestProperties(db, srcNow, csv([p1, p2, p3]), { mode: "snapshot" });
+  assert.equal(first.status, "needs_mapping");
+  [srcNow] = await db.select().from(sources).where(eq(sources.id, src.id));
+  const m = suggestMapping(srcNow.propertySample!.columns);
+  assert.deepEqual(Object.keys(m.fields).sort(), ["addressLine", "agentRefs", "beds", "extId", "landArea", "officeRef"].sort(), "owner columns never suggested");
+  [srcNow] = await db.update(sources).set({ propertyMapping: m, propertySample: null }).where(eq(sources.id, src.id)).returning();
+  const second = await ingestProperties(db, srcNow, csv([p1, p2, p3]), { mode: "snapshot" });
+  assert.deepEqual([second.status, second.created, second.offices], ["done", 3, 1]);
+  const stored = await db.select().from(properties);
+  assert.equal(stored.find((x) => x.extId === "P1")!.landArea, 600, "hectares converted");
+  assert.ok(!JSON.stringify(stored).includes("Citizen"), "owner details never stored");
+  const again2 = await ingestProperties(db, srcNow, csv([p1, p2, p3]), { mode: "snapshot" });
+  assert.equal(again2.unchanged, 3);
+
+  // Nobody sees them until unlocked. Amy shares hers; then the office shares all; then P3 drops out of a snapshot.
+  await db.update(partners).set({ acceptsProperties: true }).where(eq(partners.id, dw.id));
+  const visible = async () => (await db.select().from(propertyShares).innerJoin(properties, eq(properties.id, propertyShares.propertyId)).where(eq(propertyShares.visible, true))).map((r) => r.properties.extId).sort();
+  assert.deepEqual(await visible(), []);
+  await setAgentPropertyUnlock(db, { sourceId: src.id, refs: ["Amy@Office1.test"], partnerId: dw.id, enabled: true });
+  assert.deepEqual(await visible(), ["P1"]);
+  await setOfficePropertyUnlock(db, { agencyId: off1.id, partnerId: dw.id, enabled: true, by: "Amy (principal)" });
+  assert.deepEqual(await visible(), ["P1", "P2", "P3"]);
+  const third = await ingestProperties(db, srcNow, csv([p1, p2]), { mode: "snapshot" });
+  assert.equal(third.removed, 1);
+  assert.deepEqual(await visible(), ["P1", "P2"]);
+  await setOfficePropertyUnlock(db, { agencyId: off1.id, partnerId: dw.id, enabled: false, by: "Amy" });
+  assert.deepEqual(await visible(), ["P1"], "Amy's own share stays");
+  const delta = await ingestProperties(db, srcNow, csv([p1]), { mode: "delta" });
+  assert.equal(delta.removed, 0, "delta never removes");
+
   server.close();
   console.log("selftest passed");
   process.exit(0);

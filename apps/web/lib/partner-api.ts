@@ -1,7 +1,7 @@
 // Partner pull API (v1). Partners authenticate with their API key: Authorization: Bearer lg_…
 // They only ever see listings from agencies that have switched them on.
 import { and, eq, inArray } from "drizzle-orm";
-import { agencies, agencyPartners, agents, eventFor, getDb, hashToken, listingPayload, partners, type listings } from "@listgate/db";
+import { agencies, agencyPartners, agentPartners, agents, eventFor, getDb, hashToken, listingPayload, partnersForListing, removedPayload, partners, type listings } from "@listgate/db";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -20,14 +20,22 @@ export async function requirePartner(req: Request) {
   return p;
 }
 
-/** Agencies that send to this partner, with the partner's own reference for each. */
+/**
+ * Agencies that send to this partner, with the partner's own reference for each: ones that switched it on, plus
+ * offices from CRM feeds where at least one agent unlocked it (each listing is then checked on its own).
+ */
 export async function agenciesFor(partnerId: string) {
   const db = await getDb();
-  return db
+  const direct = await db
     .select({ agency: agencies, ref: agencyPartners.partnerAgencyRef, since: agencyPartners.updatedAt })
     .from(agencyPartners)
     .innerJoin(agencies, eq(agencies.id, agencyPartners.agencyId))
     .where(and(eq(agencyPartners.partnerId, partnerId), eq(agencyPartners.enabled, true)));
+  const srcs = await db.selectDistinct({ id: agentPartners.sourceId }).from(agentPartners).where(and(eq(agentPartners.partnerId, partnerId), eq(agentPartners.enabled, true)));
+  if (!srcs.length) return direct;
+  const seen = new Set(direct.map((d) => d.agency.id));
+  const viaAgents = await db.select().from(agencies).where(inArray(agencies.sourceId, srcs.map((s) => s.id)));
+  return [...direct, ...viaAgents.filter((a) => !seen.has(a.id)).map((a) => ({ agency: a, ref: null, since: a.createdAt }))];
 }
 
 type Partner = typeof partners.$inferSelect;
@@ -39,11 +47,16 @@ export async function payloads(p: Partner, rows: Listing[], refs: Map<string, { 
   const db = await getDb();
   const ids = [...new Set(rows.map((r) => r.agencyId))];
   const agentRows = await db.select().from(agents).where(inArray(agents.agencyId, ids));
-  return rows.map((l) => {
-    const a = refs.get(l.agencyId)!;
-    const mine = agentRows.filter((g) => g.agencyId === l.agencyId);
-    return { ...listingPayload(l, a.agency, mine, p, a.ref), removed: eventFor(p, l) === "listing.removed" };
-  });
+  return Promise.all(
+    rows.map(async (l) => {
+      const a = refs.get(l.agencyId)!;
+      const mine = agentRows.filter((g) => g.agencyId === l.agencyId);
+      // Not shared with this partner (agent didn't unlock it, or kept it away): sent as removed, without the details.
+      const shared = (await partnersForListing(db, l)).has(p.id);
+      if (!shared) return { ...removedPayload(l, a.agency, a.ref), removed: true };
+      return { ...listingPayload(l, a.agency, mine, p, a.ref), removed: !shared || eventFor(p, l) === "listing.removed" };
+    })
+  );
 }
 
 export function api<A extends unknown[]>(fn: (...args: A) => Promise<Response>) {

@@ -20,6 +20,7 @@ export function PartnerFields({ p = {} }: { p?: P }) {
         <label className="flex items-center gap-2"><input type="checkbox" name="kinds" value="rent" defaultChecked={kinds.includes("rent")} /> For rent</label>
         <label className="flex items-center gap-2"><input type="checkbox" name="includeSold" defaultChecked={p.includeSold ?? true} /> Sold and leased results</label>
         <label className="flex items-center gap-2"><input type="checkbox" name="confidential" defaultChecked={p.confidential ?? false} /> Hidden addresses and prices (data use only)</label>
+        <label className="flex items-center gap-2"><input type="checkbox" name="acceptsProperties" defaultChecked={p.acceptsProperties ?? false} /> CRM property databases (offices still approve)</label>
       </fieldset>
       <fieldset className="grid gap-2 text-sm sm:grid-cols-2">
         <legend className="label">Status</legend>

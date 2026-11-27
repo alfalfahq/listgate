@@ -83,6 +83,38 @@ export const users = pgTable(
   (t) => [uniqueIndex("users_email_unique").on(sql`lower(${t.email})`)]
 );
 
+/** Column → Listgate property field. `column` is the CRM's header (or JSON key, dots for nesting). */
+export type PropertyMapping = {
+  fields: Partial<Record<PropertyField, { column: string; transform?: "ha_to_m2" | "list" | "yes_no" | "none" }>>;
+  updatedAt?: string;
+  updatedBy?: string;
+};
+export const PROPERTY_FIELDS = [
+  "extId", "officeRef", "agentRefs", "addressLine", "unitNumber", "streetNumber", "street", "suburb", "state", "postcode",
+  "lat", "lng", "propertyType", "beds", "baths", "cars", "landArea", "buildingArea", "yearBuilt", "features",
+  "lastSaleDate", "lastSalePrice",
+] as const;
+export type PropertyField = (typeof PROPERTY_FIELDS)[number];
+
+/** OAuth settings for signing agents in with their CRM. Paths are dotted keys into the userinfo JSON. */
+export type SourceSso = {
+  enabled?: boolean;
+  label?: string;
+  authorizeUrl?: string;
+  tokenUrl?: string;
+  userinfoUrl?: string;
+  clientId?: string;
+  clientSecret?: string;
+  scope?: string;
+  idPath?: string;
+  emailPath?: string;
+  namePath?: string;
+  officePath?: string;
+  rolePath?: string;
+  // Role values (comma-separated, case-insensitive) that may approve a whole office.
+  principalRoles?: string;
+};
+
 /**
  * A CRM sending one feed for every agency on it (e.g. LockedOn). The feed is split into agencies by <agentID>.
  * Nothing from a source goes to partners until an agent signs in and unlocks their own listings (agentPartners),
@@ -100,9 +132,20 @@ export const sources = pgTable(
     notes: text("notes"),
     lastFeedAt: timestamp("last_feed_at", { withTimezone: true }),
     suspendedAt: timestamp("suspended_at", { withTimezone: true }),
+    // Property database feed: its own token, so it can be cut off without touching listings.
+    propertyToken: text("property_token"),
+    // How the CRM's columns map to Listgate's property fields (set in admin from a sample upload).
+    propertyMapping: jsonb("property_mapping").$type<PropertyMapping>(),
+    // Headers and a few rows from the last unmapped upload, for the mapping screen. Cleared when the mapping is saved.
+    propertySample: jsonb("property_sample").$type<{ columns: string[]; rows: Record<string, string>[]; at: string }>(),
+    lastPropertyFeedAt: timestamp("last_property_feed_at", { withTimezone: true }),
+    // Sign in with the CRM (OAuth 2.0 authorization code). Off until clientId is set.
+    sso: jsonb("sso").$type<SourceSso>(),
+    // Shared secret for signed "Manage on Listgate" links from inside the CRM (fallback to OAuth).
+    linkSecret: text("link_secret"),
     ...timestamps,
   },
-  (t) => [uniqueIndex("sources_slug_unique").on(t.slug), uniqueIndex("sources_feed_token_unique").on(t.feedToken)]
+  (t) => [uniqueIndex("sources_slug_unique").on(t.slug), uniqueIndex("sources_feed_token_unique").on(t.feedToken), uniqueIndex("sources_property_token_unique").on(t.propertyToken)]
 );
 
 export const agencies = pgTable(
@@ -350,6 +393,8 @@ export const partners = pgTable(
     confidential: boolean("confidential").notNull().default(false),
     // Shown to agencies as a choice. Hidden partners are only turned on by Listgate admin.
     listed: boolean("listed").notNull().default(true),
+    // Allowed to receive CRM property databases (separate from listings; offices still have to approve).
+    acceptsProperties: boolean("accepts_properties").notNull().default(false),
     active: boolean("active").notNull().default(true),
     // Stop pushing after this many failures in a row (the delivery is marked dead and can be retried in admin).
     maxAttempts: integer("max_attempts").notNull().default(12),
@@ -402,6 +447,144 @@ export const agentPartners = pgTable(
     ...timestamps,
   },
   (t) => [primaryKey({ columns: [t.sourceId, t.email, t.partnerId] }), index("agent_partners_partner_idx").on(t.partnerId)]
+);
+
+/** One listing kept away from one partner, whatever the agent or office unlocks say. */
+export const listingExclusions = pgTable(
+  "listing_exclusions",
+  {
+    listingId: uuid("listing_id").notNull().references(() => listings.id, { onDelete: "cascade" }),
+    partnerId: uuid("partner_id").notNull().references(() => partners.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    byName: text("by_name"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.listingId, t.partnerId] })]
+);
+
+// ---------------------------------------------------------------------------
+// CRM sign-in and property databases
+// ---------------------------------------------------------------------------
+
+/** A Listgate user as the CRM knows them (from signing in with the CRM, or a signed link). */
+export const crmIdentities = pgTable(
+  "crm_identities",
+  {
+    sourceId: uuid("source_id").notNull().references(() => sources.id, { onDelete: "cascade" }),
+    crmUserId: text("crm_user_id").notNull(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    email: text("email"),
+    officeRef: text("office_ref"),
+    role: text("role"),
+    isPrincipal: boolean("is_principal").notNull().default(false),
+    via: text("via").$type<"oauth" | "link">().notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
+  },
+  (t) => [primaryKey({ columns: [t.sourceId, t.crmUserId] }), index("crm_identities_user_idx").on(t.userId)]
+);
+
+/** One property from a CRM's database, normalised. No owner or contact details: there are no columns for them. */
+export const properties = pgTable(
+  "properties",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    agencyId: uuid("agency_id").notNull().references(() => agencies.id, { onDelete: "cascade" }),
+    extId: text("ext_id").notNull(),
+    // CRM user ids and/or emails of the agents the property is assigned to, lower-cased.
+    agentRefs: jsonb("agent_refs").$type<string[]>().notNull().default([]),
+    unitNumber: text("unit_number"),
+    streetNumber: text("street_number"),
+    street: text("street"),
+    suburb: text("suburb"),
+    state: text("state"),
+    postcode: text("postcode"),
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
+    propertyType: text("property_type"),
+    beds: integer("beds"),
+    baths: integer("baths"),
+    cars: integer("cars"),
+    landArea: doublePrecision("land_area"),
+    buildingArea: doublePrecision("building_area"),
+    yearBuilt: integer("year_built"),
+    features: jsonb("features").$type<string[]>().notNull().default([]),
+    lastSaleDate: text("last_sale_date"),
+    lastSalePrice: integer("last_sale_price"),
+    contentHash: text("content_hash").notNull(),
+    version: integer("version").notNull().default(1),
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("properties_agency_ext_unique").on(t.agencyId, t.extId), index("properties_agency_idx").on(t.agencyId)]
+);
+
+/** A property database upload. Processed in the background. */
+export const propertyRuns = pgTable(
+  "property_runs",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    sourceId: uuid("source_id").notNull().references(() => sources.id, { onDelete: "cascade" }),
+    status: text("status").$type<"queued" | "running" | "done" | "failed" | "needs_mapping">().notNull().default("queued"),
+    mode: text("mode").$type<"snapshot" | "delta">().notNull().default("delta"),
+    fileName: text("file_name"),
+    bytes: integer("bytes").notNull().default(0),
+    rows: integer("rows").notNull().default(0),
+    offices: integer("offices").notNull().default(0),
+    created: integer("created").notNull().default(0),
+    updated: integer("updated").notNull().default(0),
+    unchanged: integer("unchanged").notNull().default(0),
+    removed: integer("removed").notNull().default(0),
+    skipped: integer("skipped").notNull().default(0),
+    error: text("error"),
+    ms: integer("ms"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("property_runs_source_idx").on(t.sourceId, t.createdAt)]
+);
+
+/** An agent sharing the properties assigned to them with a partner. `ref` = CRM user id or email, lower-cased. */
+export const agentPropertyPartners = pgTable(
+  "agent_property_partners",
+  {
+    sourceId: uuid("source_id").notNull().references(() => sources.id, { onDelete: "cascade" }),
+    ref: text("ref").notNull(),
+    partnerId: uuid("partner_id").notNull().references(() => partners.id, { onDelete: "cascade" }),
+    enabled: boolean("enabled").notNull().default(true),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [primaryKey({ columns: [t.sourceId, t.ref, t.partnerId] })]
+);
+
+/** A principal sharing the whole office's property database with a partner. */
+export const agencyPropertyPartners = pgTable(
+  "agency_property_partners",
+  {
+    agencyId: uuid("agency_id").notNull().references(() => agencies.id, { onDelete: "cascade" }),
+    partnerId: uuid("partner_id").notNull().references(() => partners.id, { onDelete: "cascade" }),
+    enabled: boolean("enabled").notNull().default(true),
+    approvedById: uuid("approved_by_id").references(() => users.id, { onDelete: "set null" }),
+    approvedBy: text("approved_by"),
+    ...timestamps,
+  },
+  (t) => [primaryKey({ columns: [t.agencyId, t.partnerId] })]
+);
+
+/**
+ * What each partner may see, kept up to date on every upload and every unlock change. The pull API reads changes from
+ * here in `changedAt` order; `visible=false` tells the partner to delete the property.
+ */
+export const propertyShares = pgTable(
+  "property_shares",
+  {
+    partnerId: uuid("partner_id").notNull().references(() => partners.id, { onDelete: "cascade" }),
+    propertyId: uuid("property_id").notNull().references(() => properties.id, { onDelete: "cascade" }),
+    visible: boolean("visible").notNull(),
+    version: integer("version").notNull(),
+    changedAt: timestamp("changed_at", { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.partnerId, t.propertyId] }), index("property_shares_feed_idx").on(t.partnerId, t.changedAt, t.propertyId)]
 );
 
 export type DeliveryEvent = "listing.upserted" | "listing.removed" | "ping";

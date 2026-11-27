@@ -13,6 +13,7 @@ import {
   createLoginToken,
   enqueue,
   enqueueAgencyForPartner,
+  PROPERTY_FIELDS,
   setAgentsLocked,
   getDb,
   listings,
@@ -229,6 +230,7 @@ function partnerFields(form: FormData) {
     kinds: kinds.length === 2 ? [] : kinds,
     includeSold: form.get("includeSold") === "on",
     confidential: form.get("confidential") === "on",
+    acceptsProperties: form.get("acceptsProperties") === "on",
     listed: form.get("listed") === "on",
     active: form.get("active") === "on",
     maxAttempts: Math.min(50, Math.max(1, Number(str(form, "maxAttempts")) || 12)),
@@ -382,4 +384,74 @@ export async function setAgentsLock(form: FormData) {
   const queued = await setAgentsLocked(db, id, on, str(form, "reason").slice(0, 300));
   await log(admin, on ? "agency.agents_locked" : "agency.agents_unlocked", "agency", id, id, { reason: str(form, "reason") || null, queued });
   revalidatePath(`/agencies/${id}`);
+}
+
+/** Turns on the property database feed for a CRM (or issues a new token: the old URL stops at once). */
+export async function rotatePropertyToken(form: FormData) {
+  const admin = await requireAdmin();
+  const id = str(form, "sourceId");
+  const db = await getDb();
+  await db.update(sources).set({ propertyToken: newFeedToken() }).where(eq(sources.id, id));
+  await log(admin, "source.property_token", "source", id, null);
+  revalidatePath(`/sources/${id}`);
+}
+
+/** Saves the column mapping for a CRM's property files. Clears the stored sample (it may hold columns we don't keep). */
+export async function savePropertyMapping(_: State, form: FormData): Promise<State> {
+  const admin = await requireAdmin();
+  const id = str(form, "sourceId");
+  const fields: Record<string, { column: string; transform: "ha_to_m2" | "list" | "none" }> = {};
+  for (const f of PROPERTY_FIELDS) {
+    const column = str(form, `col_${f}`);
+    if (!column) continue;
+    const t = str(form, `tr_${f}`);
+    fields[f] = { column, transform: t === "ha_to_m2" ? "ha_to_m2" : f === "features" || f === "agentRefs" ? "list" : "none" };
+  }
+  if (!fields.extId) return { error: "Map the property ID column. It's how updates find the same property." };
+  const db = await getDb();
+  await db.update(sources).set({ propertyMapping: { fields, updatedAt: new Date().toISOString(), updatedBy: admin.name }, ...(form.get("keepSample") ? {} : { propertySample: null }) }).where(eq(sources.id, id));
+  await log(admin, "source.mapping_saved", "source", id, null, { fields: Object.keys(fields) });
+  revalidatePath(`/sources/${id}`);
+  return { ok: "Mapping saved. Ask the CRM to send the file again (the one that needed mapping wasn't stored)." };
+}
+
+/** CRM sign-in (OAuth) settings, and the signed-link secret. */
+export async function saveSourceSso(_: State, form: FormData): Promise<State> {
+  const admin = await requireAdmin();
+  const id = str(form, "sourceId");
+  const db = await getDb();
+  const [s] = await db.select().from(sources).where(eq(sources.id, id));
+  if (!s) return { error: "Not found." };
+  const sso = {
+    enabled: form.get("enabled") === "on",
+    label: str(form, "label") || undefined,
+    authorizeUrl: str(form, "authorizeUrl") || undefined,
+    tokenUrl: str(form, "tokenUrl") || undefined,
+    userinfoUrl: str(form, "userinfoUrl") || undefined,
+    clientId: str(form, "clientId") || undefined,
+    // Blank keeps the saved secret.
+    clientSecret: str(form, "clientSecret") || s.sso?.clientSecret,
+    scope: str(form, "scope") || undefined,
+    idPath: str(form, "idPath") || undefined,
+    emailPath: str(form, "emailPath") || undefined,
+    namePath: str(form, "namePath") || undefined,
+    officePath: str(form, "officePath") || undefined,
+    rolePath: str(form, "rolePath") || undefined,
+    principalRoles: str(form, "principalRoles") || undefined,
+  };
+  for (const u of [sso.authorizeUrl, sso.tokenUrl, sso.userinfoUrl]) if (u && !/^https:\/\//.test(u)) return { error: "The OAuth URLs must start with https://." };
+  if (sso.enabled && !(sso.clientId && sso.authorizeUrl && sso.tokenUrl && sso.userinfoUrl)) return { error: "Fill in the client ID and the three URLs before switching sign-in on." };
+  await db.update(sources).set({ sso }).where(eq(sources.id, id));
+  await log(admin, "source.sso_saved", "source", id, null, { enabled: sso.enabled });
+  revalidatePath(`/sources/${id}`);
+  return { ok: sso.enabled ? `Agents can now sign in with ${s.name}.` : "Saved." };
+}
+
+export async function rotateLinkSecret(form: FormData) {
+  const admin = await requireAdmin();
+  const id = str(form, "sourceId");
+  const db = await getDb();
+  await db.update(sources).set({ linkSecret: form.get("off") ? null : newSecret("lgl") }).where(eq(sources.id, id));
+  await log(admin, form.get("off") ? "source.link_off" : "source.link_secret", "source", id, null);
+  revalidatePath(`/sources/${id}`);
 }
