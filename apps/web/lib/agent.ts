@@ -138,6 +138,7 @@ export async function searchListings(me: Me, agencyId: string, q: string) {
       rows.map(async (l) => ({
         id: l.id,
         address: [[l.unitNumber && l.streetNumber ? `${l.unitNumber}/${l.streetNumber}` : l.streetNumber, l.street].filter(Boolean).join(" "), l.suburb].filter(Boolean).join(", ") || l.headline || l.extId,
+        photo: l.images.find((m) => !m.kind || m.kind === "photo")?.url ?? null,
         status: l.status,
         kind: l.kind,
         goingTo: [...(await partnersForListing(db, l))],
