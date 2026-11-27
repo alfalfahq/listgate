@@ -1,6 +1,6 @@
-import { and, eq, gt, isNull, ne, sql } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull, ne, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
-import { agencyMembers, createLoginToken, getDb, hashToken, loginLink, loginTokens, sessions, users, fullName } from "@listgate/db";
+import { agencies, agencyMembers, agents, createLoginToken, getDb, hashToken, loginLink, loginTokens, sessions, users, fullName } from "@listgate/db";
 import { audit } from "@/lib/audit";
 import {
   createSession,
@@ -45,7 +45,22 @@ export const POST = handle(async (req: Request) => {
       const email = String(body.email || "");
       if (!isEmail(email)) throw new HttpError(400, "Enter your email address.");
       if (!emailEnabled()) throw new HttpError(400, "Email sign-in links aren't switched on yet. Sign in with your password.");
-      const u = await userByEmail(email);
+      let u = await userByEmail(email);
+      // An agent on a CRM-wide feed signing in for the first time: their email on a listing is their invitation.
+      if (!u) {
+        const [a] = await db
+          .select({ name: agents.name })
+          .from(agents)
+          .innerJoin(agencies, eq(agencies.id, agents.agencyId))
+          .where(and(sql`lower(${agents.email}) = ${normaliseEmail(email)}`, isNotNull(agencies.sourceId)))
+          .limit(1);
+        if (a) {
+          const parts = a.name.trim().split(/\s+/);
+          [u] = await db.insert(users).values({ email: normaliseEmail(email), name: a.name, firstName: parts[0], lastName: parts.slice(1).join(" ") || null }).onConflictDoNothing().returning();
+          u ??= await userByEmail(email);
+          await audit({ actor: { id: u.id, name: u.name }, action: "agent.joined", entityType: "user", entityId: u.id });
+        }
+      }
       if (u) {
         const raw = await createLoginToken(db, { purpose: "login", email: u.email, userId: u.id });
         const link = loginLink(raw);
@@ -62,7 +77,7 @@ export const POST = handle(async (req: Request) => {
           }),
         });
       }
-      return Response.json({ ok: true, message: "If that email has a Listgate account, a sign-in link is on its way." });
+      return Response.json({ ok: true, message: "If that email has a Listgate account or is on listings sent to Listgate, a sign-in link is on its way." });
     }
     case "logout":
       await destroySession();

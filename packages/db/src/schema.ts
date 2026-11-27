@@ -83,6 +83,28 @@ export const users = pgTable(
   (t) => [uniqueIndex("users_email_unique").on(sql`lower(${t.email})`)]
 );
 
+/**
+ * A CRM sending one feed for every agency on it (e.g. LockedOn). The feed is split into agencies by <agentID>.
+ * Nothing from a source goes to partners until an agent signs in and unlocks their own listings (agentPartners),
+ * or an agency is set up and turns partners on itself.
+ */
+export const sources = pgTable(
+  "sources",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    // Secret in the CRM's feed URL (and its FTP password). Same endpoint as agency feeds.
+    feedToken: text("feed_token").notNull(),
+    contactEmail: text("contact_email"),
+    notes: text("notes"),
+    lastFeedAt: timestamp("last_feed_at", { withTimezone: true }),
+    suspendedAt: timestamp("suspended_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("sources_slug_unique").on(t.slug), uniqueIndex("sources_feed_token_unique").on(t.feedToken)]
+);
+
 export const agencies = pgTable(
   "agencies",
   {
@@ -107,9 +129,19 @@ export const agencies = pgTable(
     notes: text("notes"),
     // Suspended agencies' feeds are refused and nothing is sent to partners.
     suspendedAt: timestamp("suspended_at", { withTimezone: true }),
+    // Set when the agency was created from a CRM-wide feed: reaxmlAgentId is then its id within that CRM.
+    sourceId: uuid("source_id").references(() => sources.id, { onDelete: "set null" }),
+    // Listgate admin lock (e.g. after a complaint): agents can't change anything for this office, and their own
+    // unlocks stop applying to its listings. Only partners set at agency level (by admin) still get them.
+    agentsLockedAt: timestamp("agents_locked_at", { withTimezone: true }),
+    agentsLockedReason: text("agents_locked_reason"),
     ...timestamps,
   },
-  (t) => [uniqueIndex("agencies_slug_unique").on(t.slug), uniqueIndex("agencies_feed_token_unique").on(t.feedToken)]
+  (t) => [
+    uniqueIndex("agencies_slug_unique").on(t.slug),
+    uniqueIndex("agencies_feed_token_unique").on(t.feedToken),
+    uniqueIndex("agencies_source_agent_unique").on(t.sourceId, t.reaxmlAgentId),
+  ]
 );
 
 export const agencyMembers = pgTable(
@@ -205,7 +237,7 @@ export const agents = pgTable(
     active: boolean("active").notNull().default(true),
     ...timestamps,
   },
-  (t) => [uniqueIndex("agents_agency_ext_unique").on(t.agencyId, t.extId)]
+  (t) => [uniqueIndex("agents_agency_ext_unique").on(t.agencyId, t.extId), index("agents_email_idx").on(sql`lower(${t.email})`)]
 );
 
 export const listings = pgTable(
@@ -348,6 +380,28 @@ export const agencyPartners = pgTable(
     ...timestamps,
   },
   (t) => [primaryKey({ columns: [t.agencyId, t.partnerId] }), index("agency_partners_partner_idx").on(t.partnerId, t.enabled)]
+);
+
+/**
+ * An agent unlocking their own listings from a CRM-wide feed for one partner. Keyed by the agent's email:
+ * every listing in that source with this email as a listing agent goes to the partner.
+ */
+export const agentPartners = pgTable(
+  "agent_partners",
+  {
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    // Lower-cased. The agent proved it by signing in with a link sent to it.
+    email: text("email").notNull(),
+    partnerId: uuid("partner_id")
+      .notNull()
+      .references(() => partners.id, { onDelete: "cascade" }),
+    enabled: boolean("enabled").notNull().default(true),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [primaryKey({ columns: [t.sourceId, t.email, t.partnerId] }), index("agent_partners_partner_idx").on(t.partnerId)]
 );
 
 export type DeliveryEvent = "listing.upserted" | "listing.removed" | "ping";

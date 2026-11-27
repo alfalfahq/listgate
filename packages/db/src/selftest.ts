@@ -12,12 +12,12 @@ process.env.PGLITE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "listgate-selftes
 delete process.env.DATABASE_URL;
 
 async function main() {
-  const { getDb, ingestFeed, deliverDue, enqueueAgencyForPartner, agencies, agencyPartners, deliveries, listings, partners } = await import("./index");
+  const { getDb, ingestFeed, ingestSourceFeed, deliverDue, enqueueAgencyForPartner, setAgentUnlock, setOfficeUnlock, setAgentsLocked, agencies, agencyPartners, deliveries, listings, partners, sources } = await import("./index");
   const db = await getDb();
   const xml = fs.readFileSync(new URL("../fixtures/sample-reaxml.xml", import.meta.url), "utf8");
 
   // Local partner webhook that checks signatures.
-  const got: { event: string; body: any }[] = [];
+  const got: { event: string; body: any; path?: string }[] = [];
   const secret = "whsec_test";
   const server = http.createServer((req, res) => {
     let raw = "";
@@ -26,7 +26,7 @@ async function main() {
       const sig = String(req.headers["x-listgate-signature"] || "");
       const [, t, v1] = /t=(\d+),v1=([0-9a-f]+)/.exec(sig) || [];
       const ok = v1 === createHmac("sha256", secret).update(`${t}.${raw}`).digest("hex");
-      got.push({ event: String(req.headers["x-listgate-event"]), body: JSON.parse(raw) });
+      got.push({ event: String(req.headers["x-listgate-event"]), body: JSON.parse(raw), path: req.url });
       res.statusCode = ok ? 200 : 401;
       res.end();
     });
@@ -101,6 +101,46 @@ async function main() {
 
   const n = await db.select().from(listings).where(eq(listings.agencyId, agency.id));
   assert.equal(n.length, 4);
+
+  // 7. CRM-wide feed: split by agentID, nothing sent until an agent unlocks.
+  const [dw] = await db.update(partners).set({ webhookUrl: `http://127.0.0.1:${port}/dw`, signingSecret: secret, active: true, kinds: [], includeSold: true }).where(eq(partners.slug, "dwellicious")).returning();
+  assert.ok(dw, "dwellicious partner seeded");
+  const [src] = await db.insert(sources).values({ name: "LockedOn", slug: "lockedon", feedToken: "lockedon-test-token-123456" }).returning();
+  const item = (office: string, id: string, email: string) =>
+    `<residential modTime="2026-11-27-10:00:00" status="current"><agentID>${office}</agentID><uniqueID>${id}</uniqueID><listingAgent id="1"><name>${email.split("@")[0]}</name><email>${email}</email></listingAgent><price display="yes">900000</price><address display="yes"><streetNumber>1</streetNumber><street>Test St</street><suburb>Paddington</suburb><state>QLD</state><postcode>4064</postcode></address><category name="House"/><headline>${id}</headline><features><bedrooms>3</bedrooms><bathrooms>1</bathrooms></features></residential>`;
+  const crmXml = `<?xml version="1.0"?><propertyList>${item("OFF1", "L1", "amy@office1.test")}${item("OFF1", "L2", "ben@office1.test")}${item("OFF2", "L3", "amy@office1.test")}</propertyList>`;
+  const sr = await ingestSourceFeed(db, src, crmXml, { via: "http" });
+  assert.deepEqual([sr.agencies, sr.newAgencies, sr.created, sr.queued], [2, 2, 3, 0]);
+  const again = await ingestSourceFeed(db, src, crmXml, { via: "http" });
+  assert.deepEqual([again.newAgencies, again.unchanged], [0, 3]);
+  const [off1] = await db.select().from(agencies).where(eq(agencies.reaxmlAgentId, "OFF1"));
+  const [off2] = await db.select().from(agencies).where(eq(agencies.reaxmlAgentId, "OFF2"));
+  const dwGot = async () => {
+    got.length = 0;
+    await deliverDue(db);
+    return got.filter((g) => g.path === "/dw").map((g) => `${g.event === "listing.removed" ? "-" : "+"}${g.body.listing.agencyListingId}`).sort();
+  };
+
+  // Amy unlocks hers for Dwellicious: L1 (office 1) and L3 (office 2). Not Ben's L2.
+  await setAgentUnlock(db, { sourceId: src.id, email: "Amy@Office1.test", partnerId: dw.id, enabled: true });
+  assert.deepEqual(await dwGot(), ["+L1", "+L3"]);
+  // An update to L2 still goes nowhere; an update to L1 goes to Dwellicious.
+  await ingestSourceFeed(db, src, crmXml.replace("<headline>L2", "<headline>L2b").replace("<headline>L1", "<headline>L1b"), { via: "http" });
+  assert.deepEqual(await dwGot(), ["+L1"]);
+
+  // Amy approves the whole of office 1: Ben's L2 goes too.
+  await setOfficeUnlock(db, { agencyId: off1.id, partner: dw, enabled: true, userId: null as unknown as string, userName: "Amy", authorisedBy: "Amy <amy@office1.test>" });
+  assert.deepEqual(await dwGot(), ["+L1", "+L2"]);
+  // Office-wide off again: L2 is removed, Amy's own L1 stays.
+  await setOfficeUnlock(db, { agencyId: off1.id, partner: dw, enabled: false, userId: null as unknown as string, userName: "Amy" });
+  assert.deepEqual(await dwGot(), ["+L1", "-L2"]);
+
+  // A complaint: office 2 is locked, so Amy's unlock stops applying there.
+  await setAgentsLocked(db, off2.id, true, "Principal asked us to stop");
+  assert.deepEqual(await dwGot(), ["-L3"]);
+  // Amy locks hers: L1 removed. L3 isn't sent again (already removed).
+  await setAgentUnlock(db, { sourceId: src.id, email: "amy@office1.test", partnerId: dw.id, enabled: false });
+  assert.deepEqual(await dwGot(), ["-L1"]);
   server.close();
   console.log("selftest passed");
   process.exit(0);

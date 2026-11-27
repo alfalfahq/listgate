@@ -10,10 +10,10 @@
 // A 2xx means received. 410 Gone means "we don't want this agency/listing", also treated as done.
 // Anything else (or a timeout) is retried: 1, 2, 4, 8… minutes, capped at 6 hours, until maxAttempts.
 import { createHmac, randomBytes } from "node:crypto";
-import { and, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import type { Db } from "./index";
 import { listingPayload, removedPayload, PAYLOAD_VERSION } from "./payload";
-import { agencies, agencyPartners, agents, deliveries, listings, partners, type DeliveryEvent } from "./schema";
+import { agencies, agencyPartners, agentPartners, agents, deliveries, listings, partners, type DeliveryEvent } from "./schema";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0] | Db;
 type Partner = typeof partners.$inferSelect;
@@ -44,35 +44,111 @@ export async function pushPartnersFor(db: Tx, agencyId: string) {
     .then((rows) => rows.map((r) => r.partner).filter((p) => !!p.webhookUrl));
 }
 
+type Row = Pick<Listing, "id" | "version" | "kind" | "status" | "removedAt"> & { agentExtIds?: string[] };
+
+/** One delivery. One that hasn't been picked up yet is updated in place, so ten resends in a minute mean one push. */
+async function put(db: Tx, p: Partner, agencyId: string, l: Row, event: DeliveryEvent) {
+  const now = new Date();
+  const updated = await db
+    .update(deliveries)
+    .set({ event, listingVersion: l.version, status: "pending", attempts: 0, nextAttemptAt: now, lastError: null, updatedAt: now })
+    .where(
+      and(
+        eq(deliveries.partnerId, p.id),
+        eq(deliveries.listingId, l.id),
+        inArray(deliveries.status, ["pending", "failed"]),
+        or(isNull(deliveries.lockedUntil), lt(deliveries.lockedUntil, now))
+      )
+    )
+    .returning({ id: deliveries.id });
+  if (!updated.length) await db.insert(deliveries).values({ partnerId: p.id, agencyId, listingId: l.id, event, listingVersion: l.version });
+}
+
+/** For agencies from a CRM-wide feed: partners each listing's agents unlocked (listing id → partners). */
+async function unlockedPartnersFor(db: Tx, agencyId: string, rows: Row[]) {
+  const out = new Map<string, Partner[]>();
+  const [agency] = await db.select({ sourceId: agencies.sourceId, locked: agencies.agentsLockedAt }).from(agencies).where(eq(agencies.id, agencyId));
+  const extIds = [...new Set(rows.flatMap((r) => r.agentExtIds ?? []))];
+  if (!agency?.sourceId || agency.locked || !extIds.length) return out;
+  const people = await db.select({ extId: agents.extId, email: agents.email }).from(agents).where(and(eq(agents.agencyId, agencyId), inArray(agents.extId, extIds)));
+  const emailOf = new Map(people.filter((a) => a.email).map((a) => [a.extId, a.email!.toLowerCase()]));
+  const emails = [...new Set(emailOf.values())];
+  if (!emails.length) return out;
+  const grants = await db
+    .select({ email: agentPartners.email, partner: partners })
+    .from(agentPartners)
+    .innerJoin(partners, eq(partners.id, agentPartners.partnerId))
+    .where(and(eq(agentPartners.sourceId, agency.sourceId), eq(agentPartners.enabled, true), inArray(agentPartners.email, emails), eq(partners.active, true)));
+  for (const r of rows) {
+    const mine = new Set((r.agentExtIds ?? []).map((x) => emailOf.get(x)).filter(Boolean));
+    out.set(r.id, grants.filter((g) => mine.has(g.email) && g.partner.webhookUrl).map((g) => g.partner));
+  }
+  return out;
+}
+
 /**
- * Queues one delivery per (partner, listing). A delivery that hasn't been picked up yet is updated in place,
- * so ten feed resends in a minute still mean one push with the latest version.
+ * Queues the change for every partner that should hear about it: the partners the agency turned on, plus any partner
+ * one of the listing's agents unlocked. A partner that was sent the listing but no longer qualifies (the agent locked it
+ * again, or left the listing) gets listing.removed.
  */
-export async function enqueue(db: Tx, agencyId: string, rows: Pick<Listing, "id" | "version" | "kind" | "status" | "removedAt">[], opts: { partners?: Partner[]; event?: DeliveryEvent } = {}) {
+export async function enqueue(db: Tx, agencyId: string, rows: Row[], opts: { partners?: Partner[]; event?: DeliveryEvent } = {}) {
   if (!rows.length) return 0;
-  const targets = opts.partners ?? (await pushPartnersFor(db, agencyId));
   let n = 0;
-  for (const p of targets) {
-    for (const l of rows) {
-      const event = opts.event ?? eventFor(p, l);
-      const now = new Date();
-      const updated = await db
-        .update(deliveries)
-        .set({ event, listingVersion: l.version, status: "pending", attempts: 0, nextAttemptAt: now, lastError: null, updatedAt: now })
-        .where(
-          and(
-            eq(deliveries.partnerId, p.id),
-            eq(deliveries.listingId, l.id),
-            inArray(deliveries.status, ["pending", "failed"]),
-            or(isNull(deliveries.lockedUntil), lt(deliveries.lockedUntil, now))
-          )
-        )
-        .returning({ id: deliveries.id });
-      if (!updated.length) await db.insert(deliveries).values({ partnerId: p.id, agencyId, listingId: l.id, event, listingVersion: l.version });
+  if (opts.partners) {
+    for (const p of opts.partners) for (const l of rows) (await put(db, p, agencyId, l, opts.event ?? eventFor(p, l)), n++);
+    return n;
+  }
+  const base = await pushPartnersFor(db, agencyId);
+  const unlocked = await unlockedPartnersFor(db, agencyId, rows);
+  const last = await db
+    .selectDistinctOn([deliveries.partnerId, deliveries.listingId], { partnerId: deliveries.partnerId, listingId: deliveries.listingId, event: deliveries.event })
+    .from(deliveries)
+    .where(inArray(deliveries.listingId, rows.map((r) => r.id)))
+    .orderBy(deliveries.partnerId, deliveries.listingId, desc(deliveries.id));
+  const stale = last.filter((d) => d.event === "listing.upserted");
+  const staleIds = [...new Set(stale.map((d) => d.partnerId))];
+  const staleP = new Map((staleIds.length ? await db.select().from(partners).where(inArray(partners.id, staleIds)) : []).map((p) => [p.id, p]));
+  for (const l of rows) {
+    const targets = new Map(base.map((p) => [p.id, p]));
+    for (const p of unlocked.get(l.id) ?? []) targets.set(p.id, p);
+    for (const p of targets.values()) (await put(db, p, agencyId, l, opts.event ?? eventFor(p, l)), n++);
+    for (const d of stale) {
+      const p = staleP.get(d.partnerId);
+      if (d.listingId !== l.id || targets.has(d.partnerId) || !p?.active || !p.webhookUrl) continue;
+      await put(db, p, agencyId, l, "listing.removed");
       n++;
     }
   }
   return n;
+}
+
+/**
+ * An agent unlocking (or locking) their own listings from a CRM-wide feed for one partner.
+ * Queues their listings: upserts when unlocked, removals when locked (unless something else still covers them).
+ */
+export async function setAgentUnlock(db: Db, o: { sourceId: string; email: string; partnerId: string; enabled: boolean; userId?: string | null }) {
+  const email = o.email.trim().toLowerCase();
+  await db
+    .insert(agentPartners)
+    .values({ sourceId: o.sourceId, email, partnerId: o.partnerId, enabled: o.enabled, userId: o.userId ?? null })
+    .onConflictDoUpdate({ target: [agentPartners.sourceId, agentPartners.email, agentPartners.partnerId], set: { enabled: o.enabled, userId: o.userId ?? null, updatedAt: new Date() } });
+  const rows = await agentListings(db, o.sourceId, email, { live: o.enabled });
+  const byAgency = new Map<string, typeof rows>();
+  for (const r of rows) byAgency.set(r.agencyId, [...(byAgency.get(r.agencyId) ?? []), r]);
+  let n = 0;
+  for (const [agencyId, part] of byAgency) n += await enqueue(db, agencyId, part);
+  return n;
+}
+
+/** Listings in a source where this email is one of the listing agents. */
+export async function agentListings(db: Tx, sourceId: string, email: string, opts: { live?: boolean } = {}) {
+  return db
+    .selectDistinct({ listing: listings })
+    .from(listings)
+    .innerJoin(agencies, eq(agencies.id, listings.agencyId))
+    .innerJoin(agents, and(eq(agents.agencyId, listings.agencyId), sql`jsonb_exists(${listings.agentExtIds}, ${agents.extId})`))
+    .where(and(eq(agencies.sourceId, sourceId), sql`lower(${agents.email}) = ${email.trim().toLowerCase()}`, opts.live ? isNull(listings.removedAt) : undefined))
+    .then((r) => r.map((x) => x.listing));
 }
 
 /** Everything an agency has live (or all of it, for removals), for when a partner is switched on or off. */
@@ -201,4 +277,27 @@ export async function retryDeliveries(db: Db, opts: { partnerId?: string; ids?: 
       : inArray(deliveries.status, ["failed", "dead"]);
   const r = await db.update(deliveries).set({ status: "pending", attempts: 0, nextAttemptAt: now, lockedUntil: null, updatedAt: now }).where(where).returning({ id: deliveries.id });
   return r.length;
+}
+
+/**
+ * Turns a partner on or off for a whole office (agency-level). Off recomputes rather than removing everything,
+ * so listings an agent unlocked themselves keep going to the partner.
+ */
+export async function setOfficeUnlock(db: Db, o: { agencyId: string; partner: Partner; enabled: boolean; userId: string; userName: string; authorisedBy?: string }) {
+  await db
+    .insert(agencyPartners)
+    .values({ agencyId: o.agencyId, partnerId: o.partner.id, enabled: o.enabled, changedById: o.userId, changedByName: o.userName })
+    .onConflictDoUpdate({ target: [agencyPartners.agencyId, agencyPartners.partnerId], set: { enabled: o.enabled, changedById: o.userId, changedByName: o.userName, updatedAt: new Date() } });
+  if (o.enabled && o.authorisedBy) await db.update(agencies).set({ authorisedAt: new Date(), authorisedBy: o.authorisedBy }).where(and(eq(agencies.id, o.agencyId), isNull(agencies.authorisedAt)));
+  if (!o.partner.active || !o.partner.webhookUrl) return 0;
+  if (o.enabled) return enqueueAgencyForPartner(db, o.agencyId, o.partner, "backfill");
+  const rows = await db.select().from(listings).where(eq(listings.agencyId, o.agencyId));
+  return enqueue(db, o.agencyId, rows);
+}
+
+/** Admin lock on an office's agent unlocks. Re-queues its listings so agent-only partners are told to remove them (or get them back). */
+export async function setAgentsLocked(db: Db, agencyId: string, locked: boolean, reason?: string | null) {
+  await db.update(agencies).set({ agentsLockedAt: locked ? new Date() : null, agentsLockedReason: locked ? reason || null : null }).where(eq(agencies.id, agencyId));
+  const rows = await db.select().from(listings).where(eq(listings.agencyId, agencyId));
+  return enqueue(db, agencyId, locked ? rows : rows.filter((r) => !r.removedAt));
 }

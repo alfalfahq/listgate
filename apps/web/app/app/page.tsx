@@ -6,6 +6,7 @@ import { SignOutButton } from "@/components/AuthForms";
 import { Copy, PartnerToggles, TicketForm, UploadFeed } from "@/components/AgencyParts";
 import { TeamCard } from "@/components/AccountParts";
 import { Logo } from "@/components/Logo";
+import { agentOffices } from "@/lib/agent";
 import { agenciesFor, listedPartners } from "@/lib/agency";
 import { currentUser } from "@/lib/auth";
 import { config, feedUrl } from "@/lib/config";
@@ -46,6 +47,8 @@ export default async function AgencyApp({ searchParams }: { searchParams: Promis
     </header>
   );
 
+  // Agents from a CRM-wide feed have no agency login: their page is /agent.
+  if (!pick && (await agentOffices(me.email)).length) redirect("/agent");
   if (!pick) {
     return (
       <>

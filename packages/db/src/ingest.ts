@@ -3,8 +3,9 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Db } from "./index";
 import { enqueue } from "./outbox";
-import { contentHash, parseReaxml, type ParsedListing } from "./reaxml";
-import { agencies, agents, feedRuns, listings, type FeedVia } from "./schema";
+import { contentHash, parseReaxml, type ParsedFeed, type ParsedListing } from "./reaxml";
+import { agencies, agents, feedRuns, listings, sources, type FeedVia } from "./schema";
+import { initials, newFeedToken, slugify } from "./tokens";
 
 export type IngestResult = { received: number; created: number; updated: number; unchanged: number; removed: number; queued: number; runId: number };
 
@@ -12,7 +13,7 @@ type Agency = Pick<typeof agencies.$inferSelect, "id" | "suspendedAt" | "reaxmlA
 
 export class FeedError extends Error {}
 
-export async function ingestFeed(db: Db, agency: Agency, xml: string, opts: { via: FeedVia; fileName?: string | null }): Promise<IngestResult> {
+export async function ingestFeed(db: Db, agency: Agency, xml: string, opts: { via: FeedVia; fileName?: string | null }, parsed?: ParsedFeed): Promise<IngestResult> {
   const started = Date.now();
   const log = async (r: Partial<IngestResult>, error: string | null) => {
     const [run] = await db
@@ -25,9 +26,9 @@ export async function ingestFeed(db: Db, agency: Agency, xml: string, opts: { vi
     await log({}, "Agency is suspended; feed refused.");
     throw new FeedError("This agency is suspended on Listgate.");
   }
-  let feed: ReturnType<typeof parseReaxml>;
+  let feed: ParsedFeed;
   try {
-    feed = parseReaxml(xml);
+    feed = parsed ?? parseReaxml(xml);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     await log({}, msg);
@@ -117,4 +118,54 @@ export async function agencyByFeedToken(db: Db, token: string) {
   if (!token || token.length < 16) return null;
   const [a] = await db.select().from(agencies).where(eq(agencies.feedToken, token));
   return a ?? null;
+}
+
+type Source = typeof sources.$inferSelect;
+export type SourceIngestResult = Omit<IngestResult, "runId"> & { agencies: number; newAgencies: number; skipped: number };
+
+/**
+ * A CRM-wide feed: split by <agentID>, each part stored for its agency (created on first sight, linked to the source).
+ * Listings without an <agentID> are skipped, since they can't be placed.
+ */
+export async function ingestSourceFeed(db: Db, source: Source, xml: string, opts: { via: FeedVia; fileName?: string | null }): Promise<SourceIngestResult> {
+  if (source.suspendedAt) throw new FeedError("This CRM feed is suspended on Listgate.");
+  let feed: ParsedFeed;
+  try {
+    feed = parseReaxml(xml);
+  } catch (e) {
+    throw new FeedError(e instanceof Error ? e.message : String(e));
+  }
+  const groups = new Map<string, ParsedListing[]>();
+  let skipped = feed.skipped;
+  for (const l of feed.listings) {
+    if (!l.agencyRef) {
+      skipped++;
+      continue;
+    }
+    groups.set(l.agencyRef, [...(groups.get(l.agencyRef) ?? []), l]);
+  }
+  const out: SourceIngestResult = { received: 0, created: 0, updated: 0, unchanged: 0, removed: 0, queued: 0, agencies: groups.size, newAgencies: 0, skipped };
+  for (const [ref, part] of groups) {
+    let [agency] = await db.select().from(agencies).where(and(eq(agencies.sourceId, source.id), eq(agencies.reaxmlAgentId, ref)));
+    if (!agency) {
+      const name = `${source.name} agency ${ref}`;
+      const base = `${source.slug}-${slugify(ref)}`.slice(0, 50);
+      const values = { name, initials: initials(source.name), reaxmlAgentId: ref, crm: source.name, sourceId: source.id };
+      [agency] = await db.insert(agencies).values({ ...values, slug: base, feedToken: newFeedToken() }).onConflictDoNothing().returning();
+      if (!agency) [agency] = await db.select().from(agencies).where(and(eq(agencies.sourceId, source.id), eq(agencies.reaxmlAgentId, ref)));
+      // Slug taken by an unrelated agency: same slug with a random tail.
+      if (!agency) [agency] = await db.insert(agencies).values({ ...values, slug: `${base}-${newFeedToken().slice(0, 5).toLowerCase()}`, feedToken: newFeedToken() }).returning();
+      if (agency.createdAt.getTime() > Date.now() - 60_000) out.newAgencies++;
+    }
+    const r = await ingestFeed(db, agency, "", opts, { agentId: ref, listings: part, skipped: 0 });
+    for (const k of ["received", "created", "updated", "unchanged", "removed", "queued"] as const) out[k] += r[k];
+  }
+  await db.update(sources).set({ lastFeedAt: new Date() }).where(eq(sources.id, source.id));
+  return out;
+}
+
+export async function sourceByFeedToken(db: Db, token: string) {
+  if (!token || token.length < 16) return null;
+  const [s] = await db.select().from(sources).where(eq(sources.feedToken, token));
+  return s ?? null;
 }

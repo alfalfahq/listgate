@@ -11,8 +11,13 @@ import {
   agencyPartners,
   auditLog,
   createLoginToken,
+  enqueue,
   enqueueAgencyForPartner,
+  setAgentsLocked,
   getDb,
+  listings,
+  newFeedToken,
+  sources,
   hashToken,
   ingestFeed,
   initials,
@@ -167,7 +172,9 @@ export async function setAgencyPartner(form: FormData) {
     .insert(agencyPartners)
     .values({ agencyId, partnerId, enabled, partnerAgencyRef: ref || null, changedById: admin.id, changedByName: admin.name })
     .onConflictDoUpdate({ target: [agencyPartners.agencyId, agencyPartners.partnerId], set: { enabled, ...(form.has("ref") ? { partnerAgencyRef: ref || null } : {}), changedById: admin.id, changedByName: admin.name, updatedAt: new Date() } });
-  const queued = p.active ? await enqueueAgencyForPartner(db, agencyId, p, enabled ? "backfill" : "remove") : 0;
+  const [a] = await db.select({ sourceId: agencies.sourceId }).from(agencies).where(eq(agencies.id, agencyId));
+  // Offices from a CRM-wide feed: switching off recomputes, so listings agents unlocked themselves keep going.
+  const queued = !p.active ? 0 : enabled || !a?.sourceId ? await enqueueAgencyForPartner(db, agencyId, p, enabled ? "backfill" : "remove") : await enqueue(db, agencyId, await db.select().from(listings).where(eq(listings.agencyId, agencyId)));
   await log(admin, enabled ? "partner.enabled" : "partner.disabled", "agency", agencyId, agencyId, { partner: p.name, queued });
   revalidatePath(`/agencies/${agencyId}`);
 }
@@ -337,3 +344,42 @@ export async function setAdminAccess(form: FormData) {
   revalidatePath(`/users/${userId}`);
 }
 
+
+/** A CRM sending one feed for all its agencies (e.g. LockedOn). Gets its own feed token. */
+export async function createSource(_: State, form: FormData): Promise<State> {
+  const admin = await requireAdmin();
+  const name = str(form, "name");
+  if (!name) return { error: "Add the CRM's name." };
+  const db = await getDb();
+  const slug = slugify(str(form, "slug") || name) || "crm";
+  const [s] = await db
+    .insert(sources)
+    .values({ name, slug, feedToken: newFeedToken(), contactEmail: str(form, "contactEmail") || null, notes: str(form, "notes") || null })
+    .onConflictDoNothing()
+    .returning();
+  if (!s) return { error: `There's already a CRM feed called ${slug}.` };
+  await log(admin, "source.created", "source", s.id, null, { name });
+  revalidatePath("/sources");
+  return { ok: `${name} added. Give them the feed URL in the table below.` };
+}
+
+/** New token for a CRM feed. The old URL stops working at once. */
+export async function rotateSourceToken(form: FormData) {
+  const admin = await requireAdmin();
+  const id = str(form, "sourceId");
+  const db = await getDb();
+  await db.update(sources).set({ feedToken: newFeedToken() }).where(eq(sources.id, id));
+  await log(admin, "source.token_rotated", "source", id, null);
+  revalidatePath("/sources");
+}
+
+/** Locks (or unlocks) agent changes for an office from a CRM feed, e.g. after a complaint. */
+export async function setAgentsLock(form: FormData) {
+  const admin = await requireAdmin();
+  const id = str(form, "agencyId");
+  const on = str(form, "lock") === "1";
+  const db = await getDb();
+  const queued = await setAgentsLocked(db, id, on, str(form, "reason").slice(0, 300));
+  await log(admin, on ? "agency.agents_locked" : "agency.agents_unlocked", "agency", id, id, { reason: str(form, "reason") || null, queued });
+  revalidatePath(`/agencies/${id}`);
+}

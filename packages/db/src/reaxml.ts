@@ -53,6 +53,8 @@ export type ParsedAgent = { extId: string; name: string; email: string | null; p
 
 export type ParsedListing = {
   extId: string;
+  // REAXML <agentID>: which agency the listing belongs to. Splits a CRM-wide feed; not stored on the listing.
+  agencyRef: string | null;
   category: string;
   status: ListingStatus;
   kind: "sale" | "rent";
@@ -213,6 +215,7 @@ export function parseListing(tag: string, item: Any): ParsedListing | null {
 
   return {
     extId,
+    agencyRef: txt(item.agentID) ?? null,
     category: tag,
     status: st,
     kind,
@@ -280,6 +283,6 @@ export function parseReaxml(xml: string): ParsedFeed {
 
 /** Hash of what partners see. A resend with the same content doesn't bump the version or push again. */
 export function contentHash(l: ParsedListing) {
-  const { raw: _raw, modTime: _m, agents, ...rest } = l;
+  const { raw: _raw, modTime: _m, agencyRef: _r, agents, ...rest } = l;
   return createHash("sha256").update(JSON.stringify({ ...rest, agents })).digest("hex").slice(0, 32);
 }

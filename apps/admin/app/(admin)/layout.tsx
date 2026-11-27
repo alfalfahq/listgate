@@ -20,6 +20,7 @@ const NAV: { group: string; items: { href: string; label: string; icon: IconName
     group: "In",
     items: [
       { href: "/agencies", label: "Agencies", icon: "building" },
+      { href: "/sources", label: "CRM feeds", icon: "bolt" },
       { href: "/feeds", label: "Feed log", icon: "inbox" },
       { href: "/listings", label: "Listings", icon: "home2" },
     ],

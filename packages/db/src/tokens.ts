@@ -7,6 +7,8 @@ import * as s from "./schema";
 type Db = NodePgDatabase<typeof s>;
 
 export const newToken = () => randomBytes(32).toString("base64url");
+/** Secret for a feed URL / FTP password (agencies and CRM sources share the endpoint). */
+export const newFeedToken = () => randomBytes(24).toString("base64url");
 export const hashToken = (t: string) => createHash("sha256").update(t).digest("hex");
 
 export function appUrl() {

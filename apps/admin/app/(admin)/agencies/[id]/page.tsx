@@ -4,7 +4,7 @@ import { and, asc, count, desc, eq, isNull } from "drizzle-orm";
 import { CRMS, agencies, agencyMembers, agencyPartners, auditLog, feedRuns, fullAddress, getDb, listings, partners, users } from "@listgate/db";
 import { actionLabel, ago, feedUrl, FTP_HOST, num, when } from "@/lib/format";
 import { requireAdmin } from "@/lib/auth";
-import { inviteToAgency, resendAgency, rotateFeedToken, setAgencyPartner, setSuspended, updateAgency, uploadFeed, viewAs } from "@/app/actions";
+import { inviteToAgency, resendAgency, rotateFeedToken, setAgencyPartner, setAgentsLock, setSuspended, updateAgency, uploadFeed, viewAs } from "@/app/actions";
 import { AgencyMark, Avatar, PageHeader, Pill, Section, StatusPill, TableCard } from "@/app/kit";
 import { ActionForm, Field } from "@/app/ui";
 import { CopyButton } from "@/app/copy-button";
@@ -37,13 +37,25 @@ export default async function AgencyPage({ params }: { params: Promise<{ id: str
         title={<span className="flex items-center gap-3"><AgencyMark name={a.name} size="h-10 w-10 text-sm" />{a.name}</span>}
         sub={`${num(live.n)} live listings · last feed ${a.lastFeedAt ? ago(a.lastFeedAt) : "never"} · ${a.authorisedAt ? `authorised by ${a.authorisedBy ?? "agency"} ${ago(a.authorisedAt)}` : "not authorised yet"}`}
         actions={
-          <form action={setSuspended}>
-            <input type="hidden" name="agencyId" value={a.id} />
-            <input type="hidden" name="suspend" value={a.suspendedAt ? "0" : "1"} />
-            <button className={a.suspendedAt ? "btn-primary" : "btn-secondary"}>{a.suspendedAt ? "Unsuspend" : "Suspend"}</button>
-          </form>
+          <div className="flex flex-wrap items-center gap-2">
+            {a.sourceId && (
+              <form action={setAgentsLock} className="flex items-center gap-2">
+                <input type="hidden" name="agencyId" value={a.id} />
+                <input type="hidden" name="lock" value={a.agentsLockedAt ? "0" : "1"} />
+                {!a.agentsLockedAt && <input name="reason" className="input w-48" placeholder="Reason (shown to agents)" />}
+                <button className={a.agentsLockedAt ? "btn-primary" : "btn-secondary"} title="Stops agents changing anything for this office">{a.agentsLockedAt ? "Unlock agents" : "Lock agents"}</button>
+              </form>
+            )}
+            <form action={setSuspended}>
+              <input type="hidden" name="agencyId" value={a.id} />
+              <input type="hidden" name="suspend" value={a.suspendedAt ? "0" : "1"} />
+              <button className={a.suspendedAt ? "btn-primary" : "btn-secondary"}>{a.suspendedAt ? "Unsuspend" : "Suspend"}</button>
+            </form>
+          </div>
         }
       />
+      {a.sourceId && <p className="rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-900">From a CRM feed ({a.crm}, office ID {a.reaxmlAgentId}). Agents unlock their own listings at /agent; partners switched on below apply to the whole office.</p>}
+      {a.agentsLockedAt && <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">Agents locked {ago(a.agentsLockedAt)}{a.agentsLockedReason ? `: ${a.agentsLockedReason}` : ""}. Agents can't change anything here and their own unlocks don't apply. Only the partners below get these listings.</p>}
       {a.suspendedAt && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">Suspended {ago(a.suspendedAt)}. Feeds are refused and nothing new goes to partners.</p>}
 
       <div className="grid gap-6 lg:grid-cols-2">

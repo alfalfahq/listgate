@@ -59,6 +59,7 @@ export function LoginForm({ expired }: { expired?: boolean }) {
       >
         Email me a sign-in link instead
       </button>
+      <a href="/agent" className="text-center text-sm text-slate-600">Agent whose CRM sends to Listgate? <span className="font-semibold text-teal underline">Unlock your listings</span></a>
     </form>
   );
 }
