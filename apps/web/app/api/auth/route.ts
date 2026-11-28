@@ -1,5 +1,6 @@
 import { and, eq, gt, isNotNull, isNull, ne, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
+import { clearFailures, clientIp, lockedFor, noteFailure } from "@/lib/throttle";
 import { agencies, agencyMembers, agents, createLoginToken, getDb, hashToken, loginLink, loginTokens, sessions, users, fullName } from "@listgate/db";
 import { audit } from "@/lib/audit";
 import {
@@ -33,11 +34,18 @@ export const POST = handle(async (req: Request) => {
   switch (body.action) {
     case "login": {
       const email = String(body.email || "");
+      const byEmail = `login:${normaliseEmail(email)}`;
+      const byIp = `login-ip:${await clientIp()}`;
+      const wait = Math.max(lockedFor(byEmail, 8), lockedFor(byIp, 30));
+      if (wait) throw new HttpError(429, `Too many tries. Wait ${wait} minute${wait === 1 ? "" : "s"}, or email yourself a sign-in link instead.`);
       const u = isEmail(email) ? await userByEmail(email) : undefined;
       if (!u || !(await verifyPassword(String(body.password || ""), u.passwordHash))) {
+        noteFailure(byEmail);
+        noteFailure(byIp);
         await new Promise((r) => setTimeout(r, 500));
         throw new HttpError(401, "That email and password don't match. First time? Email yourself a sign-in link instead.");
       }
+      clearFailures(byEmail);
       await createSession(u.id);
       return Response.json({ ok: true, admin: isPlatformAdmin(u) });
     }
