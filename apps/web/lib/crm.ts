@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { and, eq, sql } from "drizzle-orm";
 import { crmIdentities, getDb, sources, users } from "@listgate/db";
 import { audit } from "./audit";
-import { createSession } from "./auth";
+import { createSession, currentUser, isPlatformAdmin } from "./auth";
 import { config } from "./config";
 
 type Source = typeof sources.$inferSelect;
@@ -86,21 +86,37 @@ export const isPrincipalRole = (s: Source, role: string | null) => {
   return !!role && list.includes(role.toLowerCase());
 };
 
-/** Finds or creates the Listgate user, remembers the CRM identity, signs them in. */
+/**
+ * Finds or creates the Listgate user, remembers the CRM identity, signs them in.
+ *
+ * The CRM decides what email it reports, and a CRM user can often edit their own. So a CRM identity is
+ * only ever attached to an existing Listgate account when that person is already signed in to it here
+ * (they've proved they own it). Otherwise a new CRM identity can only create a brand-new account.
+ * Platform admins never sign in through a CRM.
+ */
 export async function signInCrmUser(s: Source, u: CrmUser, via: "oauth" | "link") {
   const db = await getDb();
   const [known] = await db.select().from(crmIdentities).where(and(eq(crmIdentities.sourceId, s.id), eq(crmIdentities.crmUserId, u.id)));
   let userId = known?.userId;
   if (!userId) {
     if (!u.email) throw new Error(`${s.name} didn't give us your email, so we can't set up your Listgate login.`);
-    let [row] = await db.select().from(users).where(sql`lower(${users.email}) = ${u.email}`).limit(1);
-    if (!row) {
+    const [row] = await db.select().from(users).where(sql`lower(${users.email}) = ${u.email}`).limit(1);
+    if (row) {
+      const me = await currentUser();
+      if (!me || me.viewingAs || me.id !== row.id) {
+        throw new Error(`There's already a Listgate account for ${u.email}. Sign in to Listgate first, then open this from ${s.name} again to connect it.`);
+      }
+      userId = row.id;
+      await audit({ actor: { id: row.id, name: row.name }, action: "agent.crm_linked", entityType: "user", entityId: row.id, data: { via: s.name } });
+    } else {
       const name = u.name || u.email.split("@")[0];
-      [row] = await db.insert(users).values({ email: u.email, name, firstName: name.split(" ")[0] }).returning();
-      await audit({ actor: { id: row.id, name: row.name }, action: "agent.joined", entityType: "user", entityId: row.id, data: { via: s.name } });
+      const [created] = await db.insert(users).values({ email: u.email, name, firstName: name.split(" ")[0] }).returning();
+      await audit({ actor: { id: created.id, name: created.name }, action: "agent.joined", entityType: "user", entityId: created.id, data: { via: s.name } });
+      userId = created.id;
     }
-    userId = row.id;
   }
+  const [target] = await db.select().from(users).where(eq(users.id, userId));
+  if (!target || isPlatformAdmin(target)) throw new Error("This account can't sign in through a CRM. Sign in to Listgate with your password.");
   const values = { email: u.email, officeRef: u.office, role: u.role, isPrincipal: isPrincipalRole(s, u.role), via, lastSeenAt: new Date(), updatedAt: new Date() };
   await db.insert(crmIdentities).values({ sourceId: s.id, crmUserId: u.id, userId, ...values }).onConflictDoUpdate({ target: [crmIdentities.sourceId, crmIdentities.crmUserId], set: values });
   await createSession(userId);

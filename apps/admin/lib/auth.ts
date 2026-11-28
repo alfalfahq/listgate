@@ -6,6 +6,7 @@ import { cache } from "react";
 import { scrypt, timingSafeEqual } from "node:crypto";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { auditLog, getDb, hashToken, newToken, sessions, users } from "@listgate/db";
+import { clearFailures, clientIp, lockedFor, noteFailure } from "./throttle";
 
 export const ADMIN_COOKIE = "lg_admin";
 const HOURS = 12;
@@ -32,13 +33,22 @@ export function isPlatformAdmin(u: { email: string; isPlatformAdmin: boolean }) 
 
 /** Checks the email and password; on success starts a 12-hour admin session. Returns false otherwise. */
 export async function signIn(email: string, password: string) {
+  const byEmail = `admin:${email.trim().toLowerCase()}`;
+  const byIp = `admin-ip:${await clientIp()}`;
+  if (lockedFor(byEmail, 5) || lockedFor(byIp, 20)) {
+    await new Promise((r) => setTimeout(r, 600));
+    return false;
+  }
   const db = await getDb();
   const [u] = await db.select().from(users).where(sql`lower(${users.email}) = ${email.trim().toLowerCase()}`).limit(1);
   const ok = !!u && (await verifyPassword(password, u.passwordHash)) && isPlatformAdmin(u);
   if (!ok) {
+    noteFailure(byEmail);
+    noteFailure(byIp);
     await new Promise((r) => setTimeout(r, 600)); // slow down guessing
     return false;
   }
+  clearFailures(byEmail);
   const raw = newToken();
   const ua = (await headers()).get("user-agent")?.slice(0, 300) ?? null;
   await db.insert(sessions).values({ tokenHash: hashToken(raw), userId: u.id, userAgent: `admin · ${ua ?? ""}`.slice(0, 300), expiresAt: new Date(Date.now() + HOURS * 3_600_000) });
